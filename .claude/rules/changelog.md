@@ -1,5 +1,74 @@
 # Memory Changelog
 
+## 2026-10-12 (16:42 watch) — no new DSH release; 0.3.2 stays current; pending 10-11 entry committed
+- Scheduled release watch (manual session). Fresh evidence, all three channels:
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness` (clean):
+    newest tag still `dsh-v0.2.1-alpha.2` (peeled commit `d743267388` = the
+    release merge, PR #5946); `git rev-list d743267388..origin/master --count`
+    = **0**; local `dev` == `origin/master` (0/0).
+  - npm official registry, all six `@deepseek-ai/dsh-*` peers
+    (web-frontend, host-webserver, host-frontend-static, settings,
+    client-connection, credentials): dist-tags `alpha=0.2.1-alpha.2`
+    (`time.modified` 2026-10-09 — no publish since), `next=0.2.0-rc.2`;
+    cordis/schemastery `time.modified` 2026-10-03 — vendor pins unchanged.
+  - Multi-user re-check at `origin/master` (= the tag commit):
+    `git grep -ilE 'multi.?user|multiuser|role.?based|\brbac\b' -- packages/
+    apps/` = **0 hits** — upstream still has no native multi-user; dsh-login
+    remains the multi-user layer. `__DSH_BOOT__` boot-graph lever still
+    present (`packages/client/modules/src/index.ts`,
+    `rows.push({ kind: 'global', name: '__DSH_BOOT__', value: graph })`) —
+    uiRoleGate intact. Role-based whole-UI gating stays SHIPPED (0.3.0
+    uiRoleGate + 0.3.1 bridge-wall enforcement) — evaluation closed.
+- **Conclusion: no new DSH version → no adaptation needed.** dsh-login
+  0.3.2 remains current; peer ranges (`>=0.2.1-alpha.1 <0.3.0-0` on all six
+  dsh peers) already cover the latest runtime. No code changes → no README
+  fix, no release (release only when a new DSH version requires adaptation).
+- Verification: `npm test` = **19 files / 247 tests green** (6.45 s) on the
+  current tree against devDeps `^0.2.1-alpha.2`.
+- Housekeeping: the 2026-10-11 changelog entry (written but left uncommitted
+  by that session's pwsh outage) committed together with this entry per the
+  release-watch convention.
+
+## 2026-10-11 (12:00 scheduled watch) — no new DSH release; 0.3.2 stays current; EXECUTION DEGRADED (pwsh outage)
+- Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-11T04:00Z).
+  Detection (fresh evidence, shell-free channels — see DEGRADED note):
+  - npm official registry `@deepseek-ai/dsh-web-frontend`: dist-tags
+    `alpha=0.2.1-alpha.2` (published 2026-10-09T08:17Z — no publish since),
+    `next=0.2.0-rc.2`, `latest=0.0.1-rc.5`; `time.modified` 2026-10-09T08:17Z.
+  - Broad sweep via the `/-/package/<pkg>/dist-tags` endpoint: all six
+    `@deepseek-ai/dsh-*` peers (web-frontend, host-webserver,
+    host-frontend-static, settings, client-connection, credentials) still
+    `alpha=0.2.1-alpha.2` / `next=0.2.0-rc.2`; vendored cordis
+    (`dsh-0-2-1-alpha-1` = 4.0.5-alpha.1) and schemastery
+    (3.18.5-alpha.1) dist-tags unchanged → vendor pins unchanged.
+  - `git ls-remote` on the harness repo (run from the zctz-prod SSH host —
+    local shell unavailable): newest tag still `dsh-v0.2.1-alpha.2` (peeled
+    commit `d743267388`); `refs/heads/master` = `d743267388` — **0 commits**
+    past the release merge (PR #5946). Origin state byte-identical to the
+    2026-10-10 watch.
+  - dsh-login remote `refs/heads/master` = `4ccf1d7e` (10-10 changelog
+    entry) — local tip in sync; tag `v0.3.2` = `74ffba3` on the remote.
+- **Conclusion: no new DSH version → no adaptation needed.** dsh-login
+  0.3.2 remains current; peer ranges (`>=0.2.1-alpha.1 <0.3.0-0` on all six
+  dsh peers) already cover the latest runtime. Multi-user verdict
+  unchanged: origin/master == the dsh-v0.2.1-alpha.2 tag commit, so the
+  10-10 grep result (multi-user/rbac 0 hits) is still current — upstream
+  has no native multi-user; dsh-login remains the multi-user layer.
+  Role-based whole-UI gating stays SHIPPED (0.3.0 uiRoleGate + 0.3.1
+  bridge-wall enforcement) — evaluation closed.
+- **DEGRADED EXECUTION — pwsh job-runner outage**: every pwsh invocation
+  this session failed with `0xC0000142` (STATUS_DLL_INIT_FAILED,
+  "Windows Job runner exited with exit code 3221225794"), foreground and
+  background alike; a fresh subagent session reproduced the same failure →
+  Host-wide, not session-scoped. Consequences: (1) no local
+  `git fetch --all --tags` (replaced by ls-remote evidence above — same
+  objects); (2) no fresh in-tree `npm test` re-run (tree unchanged since
+  the 10-10 green run at commit `4ccf1d7e` — 19 files / 247 tests);
+  (3) this entry written into the working tree but NOT committed/pushed —
+  commit `docs: changelog — 2026-10-11 scheduled watch` + push pending;
+  the next watch (or the user) should pick it up. glob/grep file tools
+  failed with the same subprocess-spawn breakage; read/write/edit worked.
+
 ## 2026-10-10 (12:00 scheduled watch) — NEW DSH 0.2.1-alpha.2 → adapted + RELEASED 0.3.2
 - Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-10T04:00Z).
   Detection (fresh evidence):
