@@ -1,5 +1,32 @@
 # Memory Changelog
 
+## 2026-10-13 (12:00 scheduled watch) — no new DSH release; 0.3.2 stays current
+- Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-13T04:00Z).
+  Detection (fresh evidence, all three channels):
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness`: newest
+    tag still `dsh-v0.2.1-alpha.2` (2026-10-09); `origin/master` tip =
+    `d743267388` (the release merge, PR #5946);
+    `git rev-list d743267388..origin/master --count` = **0** — no commits
+    past the release merge. (Local `dev` tip also = `d743267388`.)
+  - npm official registry: all six `@deepseek-ai/dsh-*` peers
+    (web-frontend, host-webserver, host-frontend-static, settings,
+    client-connection, credentials) still `alpha=0.2.1-alpha.2` /
+    `next=0.2.0-rc.2`; `web-frontend time.modified` 2026-10-09T08:17Z —
+    no publish since 10-09. Vendored cordis/schemastery not re-published
+    (no `dsh-*` dist-tags on npm; time.modified 2026-09-08 / 2026-03-09) —
+    vendor pins unchanged.
+  - Multi-user re-check at `origin/master` (= tag commit `d743267388`):
+    `git grep -ilE 'multi.?user|multiuser|role.?based|\brbac\b' -- packages/
+    apps/` = **0 hits** — upstream still has no native multi-user; dsh-login
+    remains the multi-user layer. Role-based whole-UI gating stays SHIPPED
+    (0.3.0 uiRoleGate + 0.3.1 bridge-wall enforcement) — evaluation closed.
+- **Conclusion: no new DSH version → no adaptation needed.** dsh-login
+  0.3.2 remains current; peer ranges (`>=0.2.1-alpha.1 <0.3.0-0` on all six
+  dsh peers) already cover the latest runtime. No code changes → no README
+  fix, no release (release only when a new DSH version requires adaptation).
+- Verification: `npm test` = **19 files / 247 tests green** (5.46 s) on the
+  current tree (commit `8e7c888`) against devDeps `^0.2.1-alpha.2`.
+
 ## 2026-10-12 (16:42 watch) — no new DSH release; 0.3.2 stays current; pending 10-11 entry committed
 - Scheduled release watch (manual session). Fresh evidence, all three channels:
   - `git fetch origin --tags --prune` in `E:\code\deepseek-harness` (clean):
