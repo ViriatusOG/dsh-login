@@ -1,5 +1,41 @@
 # Memory Changelog
 
+## 2026-10-14 (14:57 watch) — no new DSH release; 0.3.2 stays current
+- Scheduled release watch (session started 2026-10-14T14:57+08:00 — ran after
+  the 12:00 cron slot). Detection (fresh evidence, all three channels):
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness`: first
+    attempt hit the recurring TLS-EOF; the documented
+    `git -c http.version=HTTP/1.1` retry (gotchas.md) succeeded (exit 0).
+    Newest tag still `dsh-v0.2.1-alpha.2` (2026-10-09); `origin/master` tip
+    = `d743267388` (the release merge, PR #5946);
+    `git rev-list d743267388..origin/master --count` = **0** — no commits
+    past the release merge.
+  - npm official registry: all six `@deepseek-ai/dsh-*` peers
+    (web-frontend, host-webserver, host-frontend-static, settings,
+    client-connection, credentials) still `alpha=0.2.1-alpha.2` /
+    `next=0.2.0-rc.2`; `web-frontend time.modified` 2026-10-09T08:17Z —
+    no publish since 10-09. Vendored pins unchanged: `@deepseek-ai/cordis`
+    `dsh-0-2-1-alpha-1` still 4.0.5-alpha.1 (time.modified 2026-10-03);
+    schemastery `latest` still 3.18.0 (time.modified 2026-03-09, no `dsh-*`
+    dist-tag — 10-13 note stands). Data point: unscoped `cordis` (koishi
+    mainline, NOT the vendored fork) published 4.0.0-rc.11 today —
+    irrelevant to the plugin's `@deepseek-ai/cordis` pin; do not mistake it
+    for a vendor re-publish.
+  - Multi-user re-check at `origin/master` (= tag commit `d743267388`):
+    `git grep -ilE 'multi.?user|multiuser|role.?based|\brbac\b' -- packages/
+    apps/` = **0 hits** — upstream still has no native multi-user; dsh-login
+    remains the multi-user layer. `__DSH_BOOT__` boot-graph lever still
+    present (`packages/client/modules/src/index.ts:585`,
+    `rows.push({ kind: 'global', name: '__DSH_BOOT__', value: graph })`) —
+    uiRoleGate intact. Role-based whole-UI gating stays SHIPPED (0.3.0
+    uiRoleGate + 0.3.1 bridge-wall enforcement) — evaluation closed.
+- **Conclusion: no new DSH version → no adaptation needed.** dsh-login
+  0.3.2 remains current; peer ranges (`>=0.2.1-alpha.1 <0.3.0-0` on all six
+  dsh peers) already cover the latest runtime. No code changes → no README
+  fix, no release (release only when a new DSH version requires adaptation).
+- Verification: `npm test` = **19 files / 247 tests green** (5.57 s) on the
+  current tree (commit `d1f6915`) against devDeps `^0.2.1-alpha.2`.
+
 ## 2026-10-13 (12:00 scheduled watch) — no new DSH release; 0.3.2 stays current
 - Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-13T04:00Z).
   Detection (fresh evidence, all three channels):
