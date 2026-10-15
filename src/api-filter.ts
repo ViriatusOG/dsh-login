@@ -52,8 +52,11 @@ export const USER_ALLOWED: ReadonlySet<string> = new Set([
   // user). `terminal.list` addresses a session explicitly and is ownership-
   // checked through the guard's GUARDED_ID_FIELDS (`sessionId`).
   'terminal.environment', 'terminal.shells', 'terminal.list', 'terminal.create',
-  'terminal.follow', 'terminal.write', 'terminal.resize', 'terminal.rename',
-  'terminal.close',
+  // DSH 0.2.1-alpha.3: `terminal.follow` became the bidirectional
+  // `terminal.attach` stream — uplink write/resize now ride the attach stream
+  // itself as sequenced commands, so the standalone `terminal.write` and
+  // `terminal.resize` methods no longer exist on the wire.
+  'terminal.attach', 'terminal.rename', 'terminal.close',
   // DSH 0.1.6-alpha.2: terminal retention across reconnects. `terminal.retain`
   // addresses a session explicitly (`sessionId`) and is ownership-checked
   // through GUARDED_ID_FIELDS like terminal.list. NOTE: since alpha.2 user
@@ -61,6 +64,13 @@ export const USER_ALLOWED: ReadonlySet<string> = new Set([
   // (no Agent sandbox), a deployment wanting stricter posture subtracts the
   // terminal.* entries from this set before wrapping (see docs/adapt-dsh-0.1.6-alpha.2.md).
   'terminal.retain',
+  // DSH 0.2.1-alpha.3: the native remote-access client mounts on every page
+  // and opens its `remoteAccess/follow` snapshot stream. The gateway always
+  // allows this method and the answer only ever contains the caller's own
+  // grants (an owner principal gets the owner baseline), so admitting it
+  // here just keeps that mount silent instead of surfacing a denied-stream
+  // error on every page load.
+  'remoteAccess.follow',
   // DSH 0.1.6-alpha.2: the right Sidebar's document preview. The read surface
   // of `workspaceFiles` + the Office→PDF converter (`officeToPdf`) are what
   // every user's document/Office preview tab calls; each method's first wire

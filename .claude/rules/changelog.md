@@ -1,5 +1,87 @@
 # Memory Changelog
 
+## 2026-10-15 (12:00 scheduled watch) — NEW DSH 0.2.1-alpha.3 → adapted + RELEASED 0.3.3
+- Scheduled cron run (`0 12 * * *` Asia/Shanghai). Detection (fresh evidence,
+  all three channels):
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness` (clean, no
+    TLS retry): new tag `dsh-v0.2.1-alpha.3` (commit `2fbf4359b8`);
+    `origin/master` = `571902028a` — **868 commits** past the alpha.2 merge
+    `d743267388`, 16 past the tag. Diff alpha.2..alpha.3 over `packages/` +
+    `apps/`: 2404 files, +74908/−11541 (188 plugin-visible). Local `dev`
+    worktree stale at alpha.2 → detached worktree
+    `E:\code\deepseek-harness-wt-alpha3` @ the tag for source inspection
+    (kept).
+  - npm official registry: all six `@deepseek-ai/dsh-*` peers re-published at
+    `alpha=0.2.1-alpha.3` (web-frontend `time.modified` 2026-10-14T12:37Z);
+    `next=0.2.0-rc.2`. Vendored packages RE-PUBLISHED for alpha.3 (dist-tag
+    `dsh-0-2-1-alpha-3`): cordis `4.0.5-alpha.2`, schemastery `3.18.5-alpha.2`,
+    cordis-plugin-include `1.0.10-alpha.2`, cordis-plugin-loader
+    `1.0.6-alpha.2`. dsh-login npm `latest` = 0.3.2 before this release.
+  - Multi-user grep at the tag (`multi.?user|multiuser|role.?based|\brbac\b`
+    over packages/ + apps/): **1 hit** — `packages/api/remote-access/README.md`
+    (first hit in six watches — NEW package). `__DSH_BOOT__` lever intact
+    (`packages/client/modules/src/index.ts:585`).
+- **Upstream surface (subagent-diffed alpha.2..alpha.3; full analysis in
+  `docs/adapt-dsh-0.2.1-alpha.3.md`):**
+  - NEW `packages/api/remote-access`: authorize-only RBAC for NON-owner Peers
+    (`Principal`/`PrincipalMap` owner-only today; `registerPolicy`/`decide`;
+    owner baseline injected as `__DSH_REMOTE_ACCESS__`; `remoteAccess.follow`
+    is the one always-allowed method, answering only the caller's own grants).
+    dsh-login users are owner principals (v1 cookie → `browserPeer
+    {kind:'owner'}`) → never gated by it. **NO native user accounts** —
+    dsh-login remains the account/authn layer. Multi-principal machinery:
+    `createPeer`/`admitConnection`, v2 API cookies `{version:2,id:PeerId}`,
+    `GET /connect` exchange, socket-ownership 409.
+  - Terminal BREAKING: `terminal.follow` → `terminal.attach` (bidirectional;
+    uplink write/resize as sequenced commands); `terminal.write`/`resize`
+    methods REMOVED.
+  - Gateway BREAKING internals: `inject: ['typert','remoteAccess']`;
+    `InvokeRemoteRequest.peer` REQUIRED; `admitConnection`; new RemoteError
+    codes. dsh-login's `wrapRemoteGateway` spread-wrap unaffected (overrides
+    only invoke/stream; implements no PeerScope).
+  - web-app bundle split: prompt sections moved to NEW enabled
+    `harness-dev-context` row (`inject: ['systemPrompt','sessionProjections',
+    'webApp']`) → **webApp injection would fail** with dsh-login's disabled
+    web-runtime row (the sole upstream webApp provider).
+  - webserver additive: `getOrigin()` (throws pre-bind), `get port()`,
+    `bindUrlHost()`. client-connection host-half refactor (peer.ts, v2
+    cookies) — no option-A impact; client half dual exports
+    `client.node.js`/`client.browser.js` (logical `/plugins/<pkg>/client.js`
+    URL unchanged). credentials precedence flip (managed file > env > .env;
+    `assertUnshadowed` deleted) — net-positive, compatible. modules: only a
+    node-chunk guard — boot-graph lever intact.
+- **Changes shipped (0.3.3):**
+  - `package.json` version → `0.3.3`; 10 dsh devDeps → `^0.2.1-alpha.3`;
+    vendor pins → cordis `~4.0.5-alpha.2`, schemastery `~3.18.5-alpha.2`,
+    include `~1.0.10-alpha.2`, loader `~1.0.6-alpha.2`. **Peers unchanged**
+    (tuples already admit alpha.3 + same-tuple vendor alphas).
+  - `src/web-runtime.ts`: `provideWebRuntime` now also provides **`webApp`**
+    (`advertisedUrl(ctx)` feature-detects `webServer.getOrigin()` with
+    try/catch → fallback `http://<urlHost(host)>:<port>`; `''` when absent;
+    read is lazy per-session context assembly) so the alpha.3
+    `harness-dev-context` row injects. `cordis.patch.yml` UNCHANGED.
+  - `src/api-filter.ts` `USER_ALLOWED`: − `terminal.follow`/`write`/`resize`,
+    + `terminal.attach`, + `remoteAccess.follow`. `src/capabilities.ts` flows
+    from `USER_ALLOWED` — no change. No change to `remote-guard.ts`,
+    `bridge-list-filter.ts`, `ui-gate.ts`, `gateway.ts`.
+  - `dist/client.js` regenerated (`build:client` gotcha after the
+    client-connection bump).
+  - Tests: NEW `tests/web-runtime.spec.ts` (5 unit tests; fake ctx mirrors
+    cordis semantics — provide() must also set ctx[name]); `plugin-entry.spec.ts`
+    + real-composition webApp assertion on a booted alpha.3 HttpServer;
+    `capabilities.spec.ts` + `remote-guard.spec.ts` updated for the new
+    terminal surface. Suite **20 files / 253 tests green** (5.67 s);
+    `npm run build` + `verify:imports` ok. ERESOLVE wedge hit again →
+    node_modules + lockfile deleted, fresh install (109 packages).
+  - README.md / README.zh.md: 0.3.3 banner + adaptation history + new
+    "Upstream multi-user / RBAC evaluation" sections (no native accounts;
+    first RBAC substrate for non-owner Peers; dsh-login users stay owner
+    principals; future option: register remote-access policies per role).
+- **Conclusion: NEW DSH version required adaptation → 0.3.3 RELEASED** (npm
+  publish + git tag `v0.3.3` + master push). Multi-user verdict recorded:
+  alpha.3 = substrate only, no accounts; dsh-login's walls remain the
+  boundary.
+
 ## 2026-10-14 (14:57 watch) — no new DSH release; 0.3.2 stays current
 - Scheduled release watch (session started 2026-10-14T14:57+08:00 — ran after
   the 12:00 cron slot). Detection (fresh evidence, all three channels):

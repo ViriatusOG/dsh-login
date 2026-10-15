@@ -53,11 +53,23 @@ describe('wrapRemoteGateway (option A isolation glue)', () => {
     const g = fakeGateway()
     const wrapped = wrapRemoteGateway(g, () => alice, id => owned.has(id))
     // The 0.1.6 sidebar terminal is agent-scoped by the Gateway (the browser
-    // never supplies `agent`), so create/follow are id-free calls.
+    // never supplies `agent`), so create is an id-free call.
     await expect(wrapped.invoke({ namespace: 'terminal', method: 'create', args: { id: 'main', cols: 80, rows: 24 } }))
       .resolves.toEqual({ invoked: 'terminal.create' })
+    // DSH 0.2.1-alpha.3: the bidirectional `terminal.attach` stream replaced
+    // `terminal.follow`, absorbing the removed `terminal.write`/`terminal.resize`
+    // methods as sequenced uplink commands — attach itself is id-free.
+    await expect(wrapped.invoke({ namespace: 'terminal', method: 'attach', args: { id: 'main' } }))
+      .resolves.toEqual({ invoked: 'terminal.attach' })
+    // ...and the removed write/resize methods are no longer on the surface.
     await expect(wrapped.invoke({ namespace: 'terminal', method: 'write', args: { id: 'main', attachmentId: 'a-1', data: 'ls' } }))
-      .resolves.toEqual({ invoked: 'terminal.write' })
+      .rejects.toThrow(/forbidden/)
+    await expect(wrapped.invoke({ namespace: 'terminal', method: 'resize', args: { id: 'main', cols: 80, rows: 24 } }))
+      .rejects.toThrow(/forbidden/)
+    // DSH 0.2.1-alpha.3: the native remote-access snapshot stream (only ever
+    // answers with the caller's own grants) is admitted for ordinary users.
+    await expect(wrapped.invoke({ namespace: 'remoteAccess', method: 'follow', args: {} }))
+      .resolves.toEqual({ invoked: 'remoteAccess.follow' })
     // Restore an archived Session (0.1.6), paired with archiveSession.
     await expect(wrapped.invoke({ namespace: 'workspace', method: 'unarchiveSession', args: { sessionId: 's-1' } }))
       .resolves.toEqual({ invoked: 'workspace.unarchiveSession' })
@@ -67,7 +79,7 @@ describe('wrapRemoteGateway (option A isolation glue)', () => {
     // ...and a foreign sessionId is still denied (ownership guard).
     await expect(wrapped.invoke({ namespace: 'terminal', method: 'list', args: { sessionId: 's-foreign' } }))
       .rejects.toThrow(/forbidden/)
-    expect(g.calls).toHaveLength(4)
+    expect(g.calls).toHaveLength(5)
   })
 
   it('grants the DSH 0.1.6-alpha.2 document-preview surface scoped to owned sessions', async () => {

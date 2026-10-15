@@ -80,13 +80,47 @@ function printWebUrl(ctx: Context, runtime: WebRuntimeValues): void {
 }
 
 /**
+ * The canonical `http://<url-host>:<port>` origin of the Web GUI. DSH
+ * 0.2.1-alpha.3 adds `webServer.getOrigin()` — the same URL-host
+ * canonicalization (literal bind address, IPv6 brackets, loopback folding)
+ * the upstream web-app row now advertises through its `webApp` service;
+ * feature-detect it and fall back to the manual formation for older harness
+ * versions and for a pre-bind read (getOrigin throws before the listener
+ * binds a port).
+ */
+function advertisedUrl(ctx: Context): string {
+  const webServer = ctx.get('webServer')
+  if (webServer === undefined) return ''
+  const origin = webServer as { getOrigin?: () => string }
+  if (typeof origin.getOrigin === 'function') {
+    try {
+      return origin.getOrigin()
+    } catch {
+      // Pre-bind or a non-advertisable bind (zone-id literal); fall through
+      // to the manual spelling below, matching the `dsh web:` print line.
+    }
+  }
+  return `http://${urlHost(webServer.host)}:${String(webServer.port)}`
+}
+
+/**
  * Provide the `webRuntime` service and the DSH_WEB_URL shell variable —
  * the parts of dsh-web-app's web-runtime row the rest of the composition
  * depends on once that row is disabled in favor of dsh-login.
+ *
+ * Also provides the `webApp` service: DSH 0.2.1-alpha.3 splits web-app's
+ * web-runtime row, moving its prompt sections into the new
+ * `harness-dev-context` row, which injects `webApp` for its
+ * `app:web-surface` runtime-context line (`Current DeepSeek Harness Web GUI
+ * URL`). With the web-runtime row disabled, dsh-login is that service's only
+ * possible provider — without it the harness-dev-context row fails injection
+ * at composition. The read is lazy (prompt context assembles per session,
+ * long after the bind), so getOrigin is safe by the time anyone calls it.
  */
 export function provideWebRuntime(ctx: Context, trustedHosts: readonly string[]): WebRuntimeValues {
   const runtime = resolveLanTrust(ctx.webServer.host, trustedHosts)
   ctx.provide('webRuntime', runtime)
+  ctx.provide('webApp', { getAdvertisedUrl: () => advertisedUrl(ctx) })
   printWebUrl(ctx, runtime)
   // Keep the bash-visible web URL alive for agent sessions.
   const shellEnv = ctx.get('shellEnv')

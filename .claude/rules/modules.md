@@ -34,8 +34,13 @@
 
 ## src/api-filter.ts
 - `USER_ALLOWED` physical allow-list + `isUserAllowed` (exact RpcMethodMap
-  keys). `ownedSessionIds` (direct index hits + lineage closure over a
-  session.list snapshot). `frameVisible` (mux/host frame predicate).
+  keys). alpha.3 surface: `terminal.attach` (bidirectional stream; the removed
+  `terminal.follow`/`terminal.write`/`terminal.resize` are gone) and
+  `remoteAccess.follow` (native remote-access snapshot stream; gateway always
+  allows it, it answers with only the caller's own grants; kept on the list so
+  the client mount stays silent — both the bridge wall and the remote guard
+  consult this list). `ownedSessionIds` (direct index hits + lineage closure
+  over a session.list snapshot). `frameVisible` (mux/host frame predicate).
   `createUserProxy`: per-user ApiProxy decorator — filters session/subagent/
   workspace listings by ownership, guards session-addressed methods (every
   sessionId-bearing payload field must be owned), records ownership on
@@ -106,9 +111,13 @@
 
 ## src/web-runtime.ts
 - `resolveLanTrust` (LAN IPv4 literals when bound 0.0.0.0 + extras),
-  `resolveDistIndex` (require.resolve dsh-web-frontend dist), `provideWebRuntime`
-  (provides webRuntime service, prints `dsh web:` URL, registers DSH_WEB_URL
-  shell variable).
+  `resolveDistIndex` (require.resolve dsh-web-frontend dist), `advertisedUrl`
+  (feature-detects `webServer.getOrigin()` (alpha.3+) in try/catch, falls back
+  to `http://<urlHost(host)>:<port>`; `''` when webServer absent),
+  `provideWebRuntime` (provides webRuntime service AND `webApp`
+  `{getAdvertisedUrl}` — the alpha.3 `harness-dev-context` web-app row injects
+  `webApp` and the disabled web-runtime row was its sole upstream provider;
+  prints `dsh web:` URL, registers DSH_WEB_URL shell variable).
 
 ## scripts/build-client.mjs
 - Regenerates `dist/client.js`: copies the shipped connection client bundle
@@ -122,7 +131,12 @@
 
 ## tests/
 - `session/auth/login-page/login-api/gateway/plugin-entry/users/ownership/
-  api-filter/connection/admin-api/client-bundle/multiuser-e2e.spec.ts`
+  api-filter/connection/admin-api/client-bundle/multiuser-e2e/web-runtime
+  .spec.ts`
   (vitest), `memory-credentials.ts` (in-memory credentials stub), `helpers.ts`,
   `runner.mjs` / `integration-runner.mjs` (legacy single-password-era custom
-  runners; not extended for multi-user).
+  runners; not extended for multi-user). `web-runtime.spec.ts` unit-tests the
+  `webApp` provide with a fake ctx that mirrors cordis semantics (provide()
+  must ALSO set ctx[name] — services are read as properties, not only via
+  get()); `plugin-entry.spec.ts` asserts the real-composition
+  `ctx.webApp.getAdvertisedUrl()` on a booted alpha.3 HttpServer.

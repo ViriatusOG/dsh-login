@@ -89,6 +89,16 @@ async function setupAdmin(port: number, password: string): Promise<string> {
 }
 
 describe('dsh-login plugin (full composition)', () => {
+  it('provides webApp (getAdvertisedUrl) so the alpha.3 harness-dev-context row injects', { timeout: 60_000 }, async () => {
+    // DSH 0.2.1-alpha.3: dsh-login disables the web-runtime row, which was
+    // the only provider of `webApp`; the new harness-dev-context row reads
+    // `webApp.getAdvertisedUrl()`. Boot the real composition and check the
+    // service exists with the canonical loopback origin of the bound server.
+    const { ctx, port } = await loadComposition()
+    expect(ctx.webApp).toBeDefined()
+    expect(ctx.webApp.getAdvertisedUrl()).toBe(`http://127.0.0.1:${String(port)}`)
+  })
+
   it('protects the root with a redirect to /login when unauthenticated', { timeout: 60_000 }, async () => {
     const { port } = await loadComposition()
     const res = await request(port, '/')

@@ -44,13 +44,22 @@ describe('capabilities', () => {
     // The 0.1.6 sidebar terminal (typert namespace `terminal`): every method
     // is session-agent-scoped by the Gateway, so it rides the caller's own
     // agent subtree — the same trust boundary as session.prompt.
+    // DSH 0.2.1-alpha.3: the bidirectional `terminal.attach` stream replaced
+    // `terminal.follow`, absorbing the removed `terminal.write`/`terminal.resize`
+    // methods as sequenced uplink commands on the stream itself.
     for (const m of [
       'terminal.environment', 'terminal.shells', 'terminal.list', 'terminal.create',
-      'terminal.follow', 'terminal.write', 'terminal.resize', 'terminal.rename',
-      'terminal.close',
+      'terminal.attach', 'terminal.rename', 'terminal.close',
     ]) {
       expect(USER_ALLOWED.has(m)).toBe(true)
     }
+    expect(USER_ALLOWED.has('terminal.follow')).toBe(false)
+    expect(USER_ALLOWED.has('terminal.write')).toBe(false)
+    expect(USER_ALLOWED.has('terminal.resize')).toBe(false)
+    // DSH 0.2.1-alpha.3: the native remote-access client's snapshot stream —
+    // the gateway always allows it and it answers with only the caller's own
+    // grants, so ordinary users admit it through the bridge wall.
+    expect(USER_ALLOWED.has('remoteAccess.follow')).toBe(true)
   })
 
   it('grants the DSH 0.1.6-alpha.2 additions (terminal.retain + document preview)', () => {

@@ -633,9 +633,11 @@ var USER_ALLOWED = /* @__PURE__ */ new Set([
   "terminal.shells",
   "terminal.list",
   "terminal.create",
-  "terminal.follow",
-  "terminal.write",
-  "terminal.resize",
+  // DSH 0.2.1-alpha.3: `terminal.follow` became the bidirectional
+  // `terminal.attach` stream — uplink write/resize now ride the attach stream
+  // itself as sequenced commands, so the standalone `terminal.write` and
+  // `terminal.resize` methods no longer exist on the wire.
+  "terminal.attach",
   "terminal.rename",
   "terminal.close",
   // DSH 0.1.6-alpha.2: terminal retention across reconnects. `terminal.retain`
@@ -645,6 +647,13 @@ var USER_ALLOWED = /* @__PURE__ */ new Set([
   // (no Agent sandbox), a deployment wanting stricter posture subtracts the
   // terminal.* entries from this set before wrapping (see docs/adapt-dsh-0.1.6-alpha.2.md).
   "terminal.retain",
+  // DSH 0.2.1-alpha.3: the native remote-access client mounts on every page
+  // and opens its `remoteAccess/follow` snapshot stream. The gateway always
+  // allows this method and the answer only ever contains the caller's own
+  // grants (an owner principal gets the owner baseline), so admitting it
+  // here just keeps that mount silent instead of surfacing a denied-stream
+  // error on every page load.
+  "remoteAccess.follow",
   // DSH 0.1.6-alpha.2: the right Sidebar's document preview. The read surface
   // of `workspaceFiles` + the Office→PDF converter (`officeToPdf`) are what
   // every user's document/Office preview tab calls; each method's first wire
@@ -2343,9 +2352,22 @@ function printWebUrl(ctx, runtime) {
   else void settled.then(() => print(), () => {
   });
 }
+function advertisedUrl(ctx) {
+  const webServer = ctx.get("webServer");
+  if (webServer === void 0) return "";
+  const origin = webServer;
+  if (typeof origin.getOrigin === "function") {
+    try {
+      return origin.getOrigin();
+    } catch {
+    }
+  }
+  return `http://${urlHost(webServer.host)}:${String(webServer.port)}`;
+}
 function provideWebRuntime(ctx, trustedHosts) {
   const runtime = resolveLanTrust(ctx.webServer.host, trustedHosts);
   ctx.provide("webRuntime", runtime);
+  ctx.provide("webApp", { getAdvertisedUrl: () => advertisedUrl(ctx) });
   printWebUrl(ctx, runtime);
   const shellEnv = ctx.get("shellEnv");
   if (shellEnv !== void 0) {

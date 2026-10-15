@@ -62,6 +62,23 @@
 - `dist/client.js` must be regenerated (`npm run build:client`) after
   upgrading `@deepseek-ai/dsh-client-connection`; the script re-stamps the
   module-loader id banner and fails loudly if the banner pattern is missing.
+  alpha.3 note: `@deepseek-ai/dsh-client-connection` now ships dual exports
+  (`client.node.js`/`client.browser.js`); the logical `/plugins/<pkg>/client.js`
+  URL is unchanged and dsh-login's single-file `dist/client.js` flow is
+  unaffected (verified 2026-10-15).
+- **webApp provider duty (alpha.3+)**: the web-app bundle's new enabled
+  `harness-dev-context` row injects `['systemPrompt','sessionProjections',
+  'webApp']` and reads `ctx.webApp.getAdvertisedUrl()` at context-assembly
+  time; the disabled web-runtime row was the sole upstream `webApp` provider.
+  dsh-login's `provideWebRuntime` therefore provides `webApp` itself (see
+  modules.md). If a future upstream adds another webApp-providing row, a
+  duplicate-provide conflict would fail the boot — re-check composition after
+  web-app bundle changes.
+- Testing a cordis ctx with a fake: `provide(name, value)` must ALSO set
+  `ctx[name] = value` (services are read as properties, not only via `get()`);
+  a fake that records into a separate target object passes `get()` but breaks
+  any code reading `ctx.webApp` style properties (2026-10-15, five red tests
+  from exactly this).
 - Ownership sidecar persistence is best-effort; the in-memory map is
   authoritative and a corrupt file starts empty (fail-closed → admin-only
   until sessions are re-attributed).
@@ -101,9 +118,13 @@
 - No .env.example found. `DSH_HOME` (data dir resolution) and
   `DSH_HARNESS_CHECKOUT` (tests/client build) are the relevant env vars.
 - The `E:\code\deepseek-harness` checkout working tree can be STALE relative
-  to releases (2026-09-19: HEAD 882 commits behind `dsh-v0.1.6-alpha.2`).
-  For release-state analysis grep the TAG (`git grep <pat> dsh-v<ver> --
-  packages/`), never the tree; test/build runtime truth is `node_modules`.
+  to releases (2026-10-15: `dev` still at the alpha.2 merge `d743267388`
+  while `origin/master` = `571902028a`, 868 commits ahead; tag
+  `dsh-v0.2.1-alpha.3`). For release-state analysis grep the TAG
+  (`git grep <pat> dsh-v<ver> -- packages/`), never the tree; or make a
+  detached worktree (`git worktree add E:\code\deepseek-harness-wt-alpha3
+  dsh-v0.2.1-alpha.3`) when you need full files. Test/build runtime truth is
+  `node_modules`.
 - `git fetch` against github.com can fail with "TLS connect error:
   unexpected eof while reading" (2026-09-19); retrying with
   `git -c http.version=HTTP/1.1 fetch --tags origin` succeeded. Treat a bare
