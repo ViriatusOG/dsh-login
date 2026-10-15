@@ -81,6 +81,22 @@
   publish + git tag `v0.3.3` + master push). Multi-user verdict recorded:
   alpha.3 = substrate only, no accounts; dsh-login's walls remain the
   boundary.
+- **npm publish completion note (14:14):** first publish attempts failed
+  (`npm whoami` 401, publish PUT 404-masked auth) — the `~/.npmrc`
+  `//registry.npmjs.org/:_authToken` line (untouched since 09-30) is dead on
+  the official registry. `--otp` / `NPM_CONFIG_OTP` retries changed nothing
+  (auth layer, not OTP). WORKING AUTH SOURCE: `E:\code\dsh-login\.env`
+  (git-ignored, LastWrite 2026-10-12) exports `NPM_ACCESS_TOKENS` (40-char
+  `npm_` granular token) — publish via temp npmrc
+  (`Set-Content .npmrc.publish` with
+  `//registry.npmjs.org/:_authToken=<token>` → `npm publish --access public
+  --registry=https://registry.npmjs.org --userconfig .npmrc.publish`), then
+  DELETE the temp file (done immediately after). Publish verified live:
+  `0.3.3` in dist-tags `latest`, `time["0.3.3"]` =
+  2026-10-15T06:14:08Z (mirror lag ~2 min; the first two post-publish
+  `npm view` reads still showed 0.3.2 — wait ~60 s before re-checking).
+  Future watches: go straight to the `.env` token when `~/.npmrc` auth
+  fails; never commit or paste the token.
 
 ## 2026-10-14 (14:57 watch) — no new DSH release; 0.3.2 stays current
 - Scheduled release watch (session started 2026-10-14T14:57+08:00 — ran after

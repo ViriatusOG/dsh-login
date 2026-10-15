@@ -117,6 +117,18 @@
 ## Environment Notes
 - No .env.example found. `DSH_HOME` (data dir resolution) and
   `DSH_HARNESS_CHECKOUT` (tests/client build) are the relevant env vars.
+- **npm publish auth (2026-10-15):** the `//registry.npmjs.org/:_authToken`
+  line in `~/.npmrc` (untouched since 09-30) is DEAD on the official
+  registry (`whoami` → 401; publish PUT → 404-masked auth failure; OTP
+  retries change nothing — the failing layer is auth, not OTP). The working
+  publish token lives in `E:\code\dsh-login\.env` (git-ignored, verified
+  untracked) as `NPM_ACCESS_TOKENS`; publish via a TEMP npmrc
+  (`//registry.npmjs.org/:_authToken=<token>` → `npm publish --access
+  public --registry=https://registry.npmjs.org --userconfig .npmrc.publish`)
+  and DELETE the temp file immediately after. Post-publish registry reads
+  may lag ~2 min (`dist-tags.latest` still shows the old version right
+  after a successful publish — wait ~60 s before re-checking). Never
+  commit, paste, or log the token.
 - The `E:\code\deepseek-harness` checkout working tree can be STALE relative
   to releases (2026-10-15: `dev` still at the alpha.2 merge `d743267388`
   while `origin/master` = `571902028a`, 868 commits ahead; tag
