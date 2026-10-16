@@ -42,9 +42,13 @@
   `ADMIN_ONLY_UI_PLUGINS` / `ui-gate.ts` changes.
 - Verification: install (21 pkgs changed, dsh builds = alpha.4), vitest
   **20 files / 256 tests green** (253 + 3), build exit 0, verify:imports ok.
-- Released: docs (README ×2, adapt doc, changelog), commits + tag `v0.3.4` +
-  push, npm publish via `.env` `NPM_ACCESS_TOKENS` temp-npmrc flow, gh release
-  `v0.3.4 --generate-notes`.
+- Released: docs (README ×2, adapt doc, changelog), commit `03fb779` + tag
+  `v0.3.4` + push, **npm publish completed 2026-10-16 (~17:55 +08:00)** via
+  `.env` `NPM_ACCESS_TOKENS` temp-npmrc flow (temp file deleted, token never
+  printed; registry propagation <1 min — dist-tags.latest=0.3.4 verified via
+  Invoke-RestMethod on the official registry), gh release
+  https://github.com/islibaodong/dsh-login/releases/tag/v0.3.4
+  (--generate-notes).
 
 ## 2026-10-15 (12:00 scheduled watch) — NEW DSH 0.2.1-alpha.3 → adapted + RELEASED 0.3.3
 - Scheduled cron run (`0 12 * * *` Asia/Shanghai). Detection (fresh evidence,
