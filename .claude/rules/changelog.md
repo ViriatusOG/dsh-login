@@ -1,5 +1,51 @@
 # Memory Changelog
 
+## 2026-10-16 (watch) — NEW DSH 0.2.1-alpha.4 → adapted + RELEASED 0.3.4
+- Detection (fresh evidence, both channels):
+  - npm official registry: `@deepseek-ai/dsh` dist-tags
+    `{latest: 0.2.0-rc.2, next: 0.2.0-rc.2, alpha: 0.2.1-alpha.4}` — the
+    `alpha` tag moved alpha.3 → alpha.4 (stable channel unmoved). (Side note:
+    the bare `dsh` npm name now shows `latest: 1.0.1` — a different package,
+    not upstream's; keep using `@deepseek-ai/dsh`.)
+  - git tag `dsh-v0.2.1-alpha.4` → `86a402200d` (2026-10-15 20:22:44 +0800,
+    PR #6301 merge; checkout master == the tag); alpha.3 tag `2fbf4359b8`;
+    **89 commits** alpha.3..alpha.4. Source inspected read-only at the tag
+    (no worktree needed — checkout HEAD already at alpha.4).
+- **Upstream surface (full analysis in `docs/adapt-dsh-0.2.1-alpha.4.md`):**
+  - NEW `packages/boot/plugin-market`: market index list + bundle install;
+    typert namespace **`pluginMarket`** (`listIndexes`/`setIndexes`/`search`,
+    emits `plugin-market/changed`). `setIndexes` reconfigures the
+    instance-wide index list → admin-only wholesale, mirroring
+    `pluginManager`. Gated in all three dsh-login layers.
+  - Boot graph carries a **`release`** stamp
+    (`packages/client/modules/src/index.ts:636` `this.release = {version,
+    commit?}`; attached at `:826`; commit from `DSH_CLIENT_COMMIT_HASH`) —
+    release-identity plumbing for client reload gating, NOT a permission
+    axis. `filterBootGraph` passes it through; regression-tested.
+  - webserver exports intact (`bindUrlHost` :210, `getOrigin` :351,
+    `renderIndex` :584 → `applyIndexTaps(...)`); `web-runtime.ts` untouched;
+    `terminal.attach` (:216) and `remoteAccess.follow` (:271) unchanged; boot
+    admission wording now "requirements", `engines.dsh` first,
+    `includePrerelease: true` — dsh-login (no engines.dsh, peers admit
+    alpha.4) unaffected.
+  - Multi-user verdict: **no native accounts**, no new grep hits; remote-access
+    substrate unchanged; whole-UI role gating still not natively implementable
+    → dsh-login's own `uiRoleGate` (0.3.0) remains THE answer. Evaluation
+    closed.
+- **Changes shipped (0.3.4):** devDeps `^0.2.1-alpha.3` → `^0.2.1-alpha.4`
+  (13 dsh-* rows; vendor alphas unchanged; own peers already admitted
+  alpha.4); `src/remote-guard.ts` ADMIN_ONLY_NAMESPACES += `pluginMarket`;
+  `src/capabilities.ts` two-segment deny + adminOnlyMethods(all three) +
+  allDomains + QUIET_DENY_METHODS(`listIndexes`/`search` read probes;
+  `setIndexes` loud 403); +3 tests (capabilities three-layer, remote-guard
+  deny/pass, ui-gate `release` preservation). NO `USER_ALLOWED` /
+  `ADMIN_ONLY_UI_PLUGINS` / `ui-gate.ts` changes.
+- Verification: install (21 pkgs changed, dsh builds = alpha.4), vitest
+  **20 files / 256 tests green** (253 + 3), build exit 0, verify:imports ok.
+- Released: docs (README ×2, adapt doc, changelog), commits + tag `v0.3.4` +
+  push, npm publish via `.env` `NPM_ACCESS_TOKENS` temp-npmrc flow, gh release
+  `v0.3.4 --generate-notes`.
+
 ## 2026-10-15 (12:00 scheduled watch) — NEW DSH 0.2.1-alpha.3 → adapted + RELEASED 0.3.3
 - Scheduled cron run (`0 12 * * *` Asia/Shanghai). Detection (fresh evidence,
   all three channels):

@@ -157,6 +157,24 @@ describe('wrapRemoteGateway (option A isolation glue)', () => {
       .resolves.toEqual({ invoked: 'account.signOut' })
   })
 
+  it('denies the whole pluginMarket namespace (0.2.1-alpha.4) for ordinary users but passes admins', async () => {
+    const g = fakeGateway()
+    const wrapped = wrapRemoteGateway(g, () => alice, id => owned.has(id))
+    // setIndexes reconfigures the instance-wide market index list; even the
+    // reads expose the operator's configured registries.
+    for (const method of ['listIndexes', 'setIndexes', 'search']) {
+      await expect(wrapped.invoke({ namespace: 'pluginMarket', method, args: {} }))
+        .rejects.toThrow(/forbidden/)
+    }
+    expect(g.calls).toHaveLength(0)
+    // Admins manage the market configuration.
+    const adminWrapped = wrapRemoteGateway(g, () => root)
+    await expect(adminWrapped.invoke({ namespace: 'pluginMarket', method: 'listIndexes', args: {} }))
+      .resolves.toEqual({ invoked: 'pluginMarket.listIndexes' })
+    await expect(adminWrapped.invoke({ namespace: 'pluginMarket', method: 'setIndexes', args: { urls: ['https://market.example/index.json'] } }))
+      .resolves.toEqual({ invoked: 'pluginMarket.setIndexes' })
+  })
+
   it('rejects a call addressing a session outside the owned set', async () => {
     const g = fakeGateway()
     const wrapped = wrapRemoteGateway(g, () => alice, id => owned.has(id))

@@ -71,6 +71,13 @@ const ADMIN_ONLY_NAMESPACES = new Set([
   // defense-in-depth, and capabilities.ts mirrors it in the two-segment deny
   // list and the quiet-deny set.
   'account',
+  // DSH 0.2.1-alpha.4: the plugin market (`namespace: 'pluginMarket'`) reads
+  // and WRITES the instance-wide market index list — `setIndexes` reconfigures
+  // which registries every install resolves against — and the same posture as
+  // pluginManager applies. Ordinary users are denied by default (absent from
+  // USER_ALLOWED), this is defense-in-depth, and capabilities.ts mirrors it in
+  // the two-segment deny list and the quiet-deny set.
+  'pluginMarket',
 ])
 
 /**

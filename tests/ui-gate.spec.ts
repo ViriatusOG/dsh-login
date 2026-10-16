@@ -121,6 +121,19 @@ describe('filterBootGraph', () => {
     expect(twice).toEqual(once)
   })
 
+  it('preserves future top-level fields (0.2.1-alpha.4 `release`) through filtering', () => {
+    // alpha.4 composes a WebBootRelease {version, commit?} into the graph and
+    // the client gates reloads on it — the spread-preserved passthrough keeps
+    // it byte-identical so ordinary users' clients still reload correctly.
+    const graph = { ...fixtureGraph(), release: { version: '0.2.1-alpha.4', commit: '86a402200d' } }
+    const out = filterBootGraph(graph)
+    expect(out).not.toBeNull()
+    expect(out!.release).toEqual({ version: '0.2.1-alpha.4', commit: '86a402200d' })
+    // ...and the HTML round-trip serves it unchanged.
+    const served = servedGraph(applyUiGate(renderIndexHtml(graph)))
+    expect(served.release).toEqual({ version: '0.2.1-alpha.4', commit: '86a402200d' })
+  })
+
   it('fails open (null) when the graph is not the verified shape', () => {
     expect(filterBootGraph(undefined)).toBeNull()
     expect(filterBootGraph('nope')).toBeNull()

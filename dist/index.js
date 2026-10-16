@@ -795,7 +795,15 @@ function adminOnlyMethods() {
     // DSH 0.1.7: the plugin-registry probe the new bundled plugin-manager UI
     // uses (client/ui-plugin-manager, service id `pluginRegistryProbe`) —
     // same strictly-admin posture as pluginManager.
-    "pluginRegistryProbe.list"
+    "pluginRegistryProbe.list",
+    // DSH 0.2.1-alpha.4: the plugin market (packages/boot/plugin-market,
+    // typert namespace `pluginMarket`) — reads and reconfigures the
+    // instance-wide market index list its installs resolve against.
+    // Strictly admin-only: never added to USER_ALLOWED, and
+    // ADMIN_ONLY_NAMESPACES denies it for ordinary users.
+    "pluginMarket.listIndexes",
+    "pluginMarket.setIndexes",
+    "pluginMarket.search"
   ];
 }
 function allDomains() {
@@ -807,7 +815,10 @@ function allDomains() {
     "pluginManager",
     // DSH 0.1.7: the account controller's namespace (admin-only; see
     // remote-guard's ADMIN_ONLY_NAMESPACES and the two-segment deny list).
-    "account"
+    "account",
+    // DSH 0.2.1-alpha.4: the plugin market's namespace (admin-only; see
+    // remote-guard's ADMIN_ONLY_NAMESPACES and the two-segment deny list).
+    "pluginMarket"
   ];
 }
 function allUiPlugins() {
@@ -2402,7 +2413,14 @@ var ADMIN_ONLY_NAMESPACES = /* @__PURE__ */ new Set([
   // ordinary users are denied by default (absent from USER_ALLOWED), this is
   // defense-in-depth, and capabilities.ts mirrors it in the two-segment deny
   // list and the quiet-deny set.
-  "account"
+  "account",
+  // DSH 0.2.1-alpha.4: the plugin market (`namespace: 'pluginMarket'`) reads
+  // and WRITES the instance-wide market index list — `setIndexes` reconfigures
+  // which registries every install resolves against — and the same posture as
+  // pluginManager applies. Ordinary users are denied by default (absent from
+  // USER_ALLOWED), this is defense-in-depth, and capabilities.ts mirrors it in
+  // the two-segment deny list and the quiet-deny set.
+  "pluginMarket"
 ]);
 var GUARDED_ID_FIELDS = [
   "sessionId",

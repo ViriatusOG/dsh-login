@@ -140,6 +140,25 @@ describe('capabilities', () => {
     expect(isReadProbe('account.signOut')).toBe(false)
     expect(isReadProbe('account.startSignIn')).toBe(false)
   })
+
+  it('keeps the pluginMarket namespace (0.2.1-alpha.4) admin-only across all three layers', () => {
+    // Wire guard: absent from the ordinary allow-list, advertised for admins.
+    const caps = deriveCapabilities({ username: 'alice', isAdmin: false })
+    expect(caps.methods.some(m => m.startsWith('pluginMarket.'))).toBe(false)
+    expect(caps.domains).not.toContain('pluginMarket')
+    const admin = deriveCapabilities({ username: 'root', isAdmin: true })
+    expect(admin.methods).toContain('pluginMarket.listIndexes')
+    expect(admin.methods).toContain('pluginMarket.setIndexes')
+    expect(admin.methods).toContain('pluginMarket.search')
+    expect(admin.domains).toContain('pluginMarket')
+    // Two-segment URL layer: /api/pluginMarket/* is admin-only.
+    expect(isUserDeniedTwoSegment('pluginMarket')).toBe(true)
+    // Grace layer: read probes deny quietly (the Plugins page's Discover tab
+    // boots them for any signed-in profile), the write stays loud 403.
+    expect(isReadProbe('pluginMarket.listIndexes')).toBe(true)
+    expect(isReadProbe('pluginMarket.search')).toBe(true)
+    expect(isReadProbe('pluginMarket.setIndexes')).toBe(false)
+  })
 })
 
 describe('isReadProbe', () => {
@@ -166,7 +185,7 @@ describe('isReadProbe', () => {
 
 describe('isUserDeniedTwoSegment', () => {
   it('denies admin-only/decoration two-segment domains', () => {
-    for (const d of ['pet', 'credentials', 'agentPresets', 'plugin-manager', 'task-board', 'doctor', 'pair', 'update', 'dsh-web-ui-settings', 'agents']) {
+    for (const d of ['pet', 'credentials', 'agentPresets', 'plugin-manager', 'task-board', 'doctor', 'pair', 'update', 'dsh-web-ui-settings', 'agents', 'pluginMarket']) {
       expect(isUserDeniedTwoSegment(d)).toBe(true)
     }
   })

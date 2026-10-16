@@ -64,6 +64,10 @@ export const ADMIN_ONLY_TWO_SEGMENT_DOMAINS: ReadonlySet<string> = new Set([
   // upstream DeepSeek Platform grant is a whole-instance credential
   // operation (mirrors remote-guard's ADMIN_ONLY_NAMESPACES 'account').
   'account',
+  // DSH 0.2.1-alpha.4: the plugin market configures the instance-wide
+  // index list its installs resolve against (mirrors remote-guard's
+  // ADMIN_ONLY_NAMESPACES 'pluginMarket').
+  'pluginMarket',
 ])
 
 /**
@@ -209,6 +213,12 @@ function adminOnlyMethods(): string[] {
     // uses (client/ui-plugin-manager, service id `pluginRegistryProbe`) —
     // same strictly-admin posture as pluginManager.
     'pluginRegistryProbe.list',
+    // DSH 0.2.1-alpha.4: the plugin market (packages/boot/plugin-market,
+    // typert namespace `pluginMarket`) — reads and reconfigures the
+    // instance-wide market index list its installs resolve against.
+    // Strictly admin-only: never added to USER_ALLOWED, and
+    // ADMIN_ONLY_NAMESPACES denies it for ordinary users.
+    'pluginMarket.listIndexes', 'pluginMarket.setIndexes', 'pluginMarket.search',
   ]
 }
 
@@ -217,7 +227,10 @@ function allDomains(): string[] {
   return [...USER_DOMAINS, 'credentials', 'settings', 'agentPresets', 'pluginManager',
     // DSH 0.1.7: the account controller's namespace (admin-only; see
     // remote-guard's ADMIN_ONLY_NAMESPACES and the two-segment deny list).
-    'account']
+    'account',
+    // DSH 0.2.1-alpha.4: the plugin market's namespace (admin-only; see
+    // remote-guard's ADMIN_ONLY_NAMESPACES and the two-segment deny list).
+    'pluginMarket']
 }
 
 /** Every UI plugin id (core + admin-only). */
@@ -244,6 +257,11 @@ export const QUIET_DENY_METHODS: ReadonlySet<string> = new Set([
   // quiet set even though the trailing verb is not a read verb.
   'account.getState', 'account.getProfile', 'account.getBalance', 'account.watch',
   'account.watchExpiry',
+  // DSH 0.2.1-alpha.4: the plugin market's read probes — the bundled Plugins
+  // page's Discover tab boots `pluginMarket.listIndexes`/`search` for any
+  // signed-in profile; deny quietly instead of a red wall (`setIndexes` is a
+  // write and stays a loud 403).
+  'pluginMarket.listIndexes', 'pluginMarket.search',
 ])
 
 /**
