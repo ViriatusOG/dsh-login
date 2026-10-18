@@ -54,8 +54,12 @@
   (`dist/client.js` 37134 chars); `npm run verify:imports` ok. Two-browser
   isolation sign-off remains deployment-side.
 - **Release:** README/README.zh banner + history + status + tracking +
-  evaluation updated (0.3.5 / rc.2, re-verified 2026-10-18); tag `v0.3.5` +
-  push; npm publish via the `.env` `NPM_ACCESS_TOKENS` temp-npmrc; gh release.
+  evaluation updated (0.3.5 / rc.2, re-verified 2026-10-18); commit `f27375a`,
+  tag `v0.3.5` (`f6fa9d1e…`) + push; npm publish via the `.env`
+  `NPM_ACCESS_TOKENS` temp-npmrc (temp `.npmrc.publish` deleted immediately,
+  token never printed) — registry verified **`latest = 0.3.5`**, tarball 35
+  files / 206.5 kB / shasum `7efde2f1…`; gh release
+  https://github.com/islibaodong/dsh-login/releases/tag/v0.3.5.
 
 ## 2026-10-16 (watch) — NEW DSH 0.2.1-alpha.4 → adapted + RELEASED 0.3.4
 - Detection (fresh evidence, both channels):
