@@ -1,5 +1,62 @@
 # Memory Changelog
 
+## 2026-10-18 (watch) — NEW DSH 0.2.1-alpha.5 / rc.1 / rc.2 → adapted + RELEASED 0.3.5
+- Detection (both channels):
+  - npm official registry: `@deepseek-ai/dsh-host-webserver` dist-tags
+    `{alpha: 0.2.1-alpha.5, next: 0.2.1-rc.2, latest: 0.0.1-rc.1}` — the alpha
+    tag moved alpha.4 → alpha.5; rc.2 is the newest published build. (Bare
+    `dsh` npm name still `latest: 1.0.1` — a different package; keep using
+    `@deepseek-ai/dsh*`.)
+  - git tags: `dsh-v0.2.1-alpha.5` → `1517a4dbca` (2026-10-16 19:02:34, PR
+    #6327); `dsh-v0.2.1-rc.1` → `1600d8a1e1` (2026-10-16 21:46:57, PR #6387);
+    `dsh-v0.2.1-rc.2` → `687f282e86` (2026-10-17 15:22:43, PR #6408).
+    alpha.4..rc.2 = **49 commits** (36 + 4 + 9); 533 files +6073/−1146.
+- **Upstream surface (full analysis in `docs/adapt-dsh-0.2.1-rc.2.md`): the
+  whole adapter surface is SOURCE-UNCHANGED.** Every integration point
+  (`host/webserver`, `client/connection`, `settings`, `host/frontend-static`,
+  `client/modules` boot graph, `client/runtime` + `ui-slots`, `web-app`,
+  `app-boot`, gateway/remotes, plugin-manager/-market) changed only in
+  `package.json`; all `/api` controllers (session/workspace/terminal/settings/
+  job/account/plugin-*/remote-*/remotes) have **zero src diff** → the wire
+  method registry is unchanged, `USER_ALLOWED`/`ADMIN_ONLY_*` need no edits.
+  - Vendor re-release (PR #6388) moved the vendored packages to **stable**:
+    cordis `4.0.5`, cosmokit `1.8.6`, group `1.0.5`, hmr `1.0.20`, include
+    `1.0.10`, loader `1.0.6`, logger-console `1.0.5`, schemastery `3.18.5`,
+    timer `1.1.7`. The npm `dsh-0-2-1-alpha-3` vendor dist-tags stayed at the
+    alpha vintages → pin the STABLE releases. All rc.2 dsh packages peer
+    `cordis ~4.0.5` (settings also `schemastery ~3.18.5`);
+    `dsh-client-connection`'s peers are now `cordis ~4.0.5` + `dsh-scope
+    0.2.1-rc.2` (no longer direct session/brand peers).
+  - NEW packages, none a wire/typert surface: `web/web-deepseek-api`
+    (registers `deepseek-search-api`/`deepseek-fetch-api` into `ctx.web` —
+    agent-side providers), `client/ui-deepseek-model-label-1017` (native 1017
+    badge UI), `client/ui-settings-web-search` (settings card).
+  - `api/terminal-controller` got client-only additions (`src/client/
+    inventory.ts` etc.); its `src/index.ts` + server half are zero-diff → no
+    new wire methods.
+  - Multi-user verdict: still **no native accounts** — the recurring
+    `multi.?user|multiuser|role.?based|\brbac\b` grep yields the same single
+    hit (`packages/api/remote-access/README.md`, the authorize-only
+    non-owner-Peer substrate; dsh-login users are owner principals).
+    Whole-UI role gating still not natively implementable (runtime/ui-slots
+    unchanged, no `isAdmin`/`isAllowed`/account `role`); dsh-login's
+    `uiRoleGate` remains THE answer, boot-graph lever intact.
+- **Changes shipped (0.3.5):** `version` 0.3.4 → 0.3.5; 10 dsh-* devDeps
+  `^0.2.1-alpha.4` → `^0.2.1-rc.2`; vendor pins alpha → stable (cordis
+  `~4.0.5`, schemastery `~3.18.5`, include `~1.0.10`, loader `~1.0.6`).
+  **Own peers unchanged** (the `>=0.2.1-alpha.1 <0.3.0-0` branch admits
+  alpha.5/rc.1/rc.2; `~4.0.5-alpha.1` admits stable). **No source changes.**
+  dist rebuilt and byte-identical (`git hash-object` == the index blobs).
+- **Verification:** `npm install` no ERESOLVE (21 lockfile version rows);
+  node_modules = `0.2.1-rc.2` × 10 + cordis 4.0.5 / schemastery 3.18.5 /
+  include 1.0.10 / loader 1.0.6; `vitest run` **20 files / 256 tests green**
+  (baseline on alpha.4 was also 256/256); `npm run build` exit 0
+  (`dist/client.js` 37134 chars); `npm run verify:imports` ok. Two-browser
+  isolation sign-off remains deployment-side.
+- **Release:** README/README.zh banner + history + status + tracking +
+  evaluation updated (0.3.5 / rc.2, re-verified 2026-10-18); tag `v0.3.5` +
+  push; npm publish via the `.env` `NPM_ACCESS_TOKENS` temp-npmrc; gh release.
+
 ## 2026-10-16 (watch) — NEW DSH 0.2.1-alpha.4 → adapted + RELEASED 0.3.4
 - Detection (fresh evidence, both channels):
   - npm official registry: `@deepseek-ai/dsh` dist-tags

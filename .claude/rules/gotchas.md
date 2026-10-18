@@ -28,7 +28,8 @@
   the shipped `connection` row must stay disabled while dsh-login's takeover
   is active.
 - vitest resolves `@deepseek-ai/*` at RUNTIME from `node_modules` (real npm
-  tarballs, devDeps pinned to `^0.1.7-alpha.2` since 2026-09-23) — there are
+  tarballs, devDeps pinned to `^0.2.1-rc.2` since 2026-10-18; before that
+  `^0.2.1-alpha.4`, and `^0.1.7-alpha.2` before 2026-09-23) — there are
   NO vitest aliases. Only tsconfig `paths` map `@deepseek-ai/*` to the harness
   checkout (`E:/code/deepseek-harness`) for TYPES. After a DSH upgrade:
   `npm i -D @deepseek-ai/<pkgs>@<tag>` — do not assume node_modules matches
@@ -65,7 +66,16 @@
   alpha.3 note: `@deepseek-ai/dsh-client-connection` now ships dual exports
   (`client.node.js`/`client.browser.js`); the logical `/plugins/<pkg>/client.js`
   URL is unchanged and dsh-login's single-file `dist/client.js` flow is
-  unaffected (verified 2026-10-15).
+  unaffected (verified 2026-10-15). rc.2 note (2026-10-18): the
+  `dsh-client-connection` client half is unchanged alpha.4→rc.2, so a rebuild
+  reproduces `dist/*` byte-identical — no re-stamp churn.
+- **rc.2 moved the vendored packages to STABLE** (2026-10-18): pin cordis
+  `~4.0.5`, schemastery `~3.18.5`, include `~1.0.10`, loader `~1.0.6` — the
+  npm `dsh-0-2-1-alpha-3` vendor dist-tags still point at the alpha vintages
+  and are the wrong pins now. Also at rc.2 `dsh-client-connection` peers only
+  `cordis ~4.0.5` + `dsh-scope 0.2.1-rc.2` (no longer direct `dsh-session` /
+  `dsh-brand` peers), so the "exact-pins NEW peers" ERESOLVE trap below has a
+  different shape than at 0.1.7.
 - **webApp provider duty (alpha.3+)**: the web-app bundle's new enabled
   `harness-dev-context` row injects `['systemPrompt','sessionProjections',
   'webApp']` and reads `ctx.webApp.getAdvertisedUrl()` at context-assembly
