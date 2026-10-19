@@ -1,5 +1,40 @@
 # Memory Changelog
 
+## 2026-10-19 (12:00 scheduled watch) — no new DSH release; 0.3.5 stays current
+- Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-19T04:00Z).
+  Fresh evidence, all three channels, all unchanged since the 10-18 watch:
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness` (clean,
+    exit 0, no TLS-EOF retry needed): newest tag still `dsh-v0.2.1-rc.2`
+    (→ `687f282e86`, the release merge PR #6408); `git rev-list
+    dsh-v0.2.1-rc.2..origin/master --count` = **0** — no commits past the
+    release merge.
+  - npm official registry (`/-/package/<pkg>/dist-tags` + `time.modified`):
+    all six `@deepseek-ai/dsh-*` peers (web-frontend, host-webserver,
+    host-frontend-static, settings, client-connection, credentials) still
+    `alpha=0.2.1-alpha.5` / `next=0.2.1-rc.2`, `time.modified` all
+    2026-10-17 — no publish since rc.2. Vendored pins unchanged at the
+    stable re-release (cordis `latest=4.0.5`, schemastery `3.18.5`, include
+    `1.0.10`, loader `1.0.6`; modified 2026-10-16). `@islibaodong/dsh-login`
+    `latest=0.3.5` (modified 2026-10-18 — yesterday's publish).
+  - Multi-user re-check at `origin/master` (= the tag commit): grep
+    `multi.?user|multiuser|role.?based|\brbac\b` over `packages/ apps/` =
+    **1 hit** — `packages/api/remote-access/README.md` (the authorize-only
+    non-owner-Peer substrate; identical to the 10-18 verdict). No native
+    accounts upstream; dsh-login remains the multi-user layer.
+    `__DSH_BOOT__` boot-graph lever intact
+    (`packages/client/modules/src/index.ts:592`,
+    `rows.push({ kind: 'global', name: '__DSH_BOOT__', value: graph })`)
+    — uiRoleGate intact. Role-based whole-UI gating stays SHIPPED
+    (0.3.0 uiRoleGate + 0.3.1 bridge-wall enforcement) — evaluation closed.
+- **Conclusion: no new DSH version → no adaptation needed.** dsh-login
+  0.3.5 remains current (last-adapted runtime 0.2.1-rc.2 IS the current
+  latest); peer ranges (`>=0.2.1-alpha.1 <0.3.0-0` + the rc.2 devDeps)
+  already cover the latest runtime. No code changes → no README fix, no
+  release (release only when a new DSH version requires adaptation).
+- Verification: `npm test` = **20 files / 256 tests green** (5.61 s) on the
+  current tree (commit `c30e3b6`) against devDeps `^0.2.1-rc.2`.
+- Changelog entry committed + pushed per the release-watch convention.
+
 ## 2026-10-18 (watch) — NEW DSH 0.2.1-alpha.5 / rc.1 / rc.2 → adapted + RELEASED 0.3.5
 - Detection (both channels):
   - npm official registry: `@deepseek-ai/dsh-host-webserver` dist-tags
