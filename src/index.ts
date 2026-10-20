@@ -17,7 +17,7 @@ import { BooleanSetting } from './boolean-setting.ts'
 import { applyWithRetry, RemoteWebUiCompat, type RemoteWebUiCompatDeps } from './remote-web-ui-compat.ts'
 import { createGatewayHandler } from './gateway.ts'
 import { createApiBridgeAuth } from './api-bridge-auth.ts'
-import { DefaultWorkspaceProvisioner, type WorkspaceRegistryLike } from './provision.ts'
+import { DefaultWorkspaceProvisioner, userSandboxDir, type WorkspaceRegistryLike } from './provision.ts'
 import { createHostSessionApi, createHostSessionSource, tryGetService } from './host-session-access.ts'
 import { probeOwnedSessionIds } from './bridge-list-filter.ts'
 import { createLoginHandler, createLogoutHandler, createLogoutRedirectHandler, createSetupHandler } from './login-api.ts'
@@ -209,6 +209,9 @@ export function apply(ctx: Context, config: Config): void {
         quietDenials: config.quietDenials,
         ownedProvider,
         provisioner,
+        // Ordinary users may only name folders inside their own
+        // <workspace root>/<username> (path-fence.ts); admins are not fenced.
+        userFolder: (username) => userSandboxDir(workspaceRootSetting.get(), username),
       }), { global: true }),
       'dsh-login: /api bridge auth wall',
     )

@@ -102,6 +102,11 @@ export function sandboxSegment(username: string): string {
     .slice(0, 96) || 'user'
 }
 
+/** The folder an ordinary user's workspace lives in: `<root>/<safe username>`. */
+export function userSandboxDir(root: string, username: string): string {
+  return join(root, sandboxSegment(username))
+}
+
 /**
  * DefaultWorkspaceProvisioner — lazily ensures each non-admin user's default
  * workspace exists exactly once per process.
@@ -156,7 +161,7 @@ export class DefaultWorkspaceProvisioner {
     // from an earlier partial attempt so a retry never double-registers.
     let workspaceId = this.pending.get(key)
     if (workspaceId === undefined) {
-      const dir = join(root, sandboxSegment(username))
+      const dir = userSandboxDir(root, username)
       await mkdir(dir, { recursive: true })
       const workspace = await registry.create(dir, this.deps.title ?? username)
       workspaceId = workspace.id

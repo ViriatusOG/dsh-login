@@ -634,7 +634,7 @@ async function applyWithRetry(compat, enabled, publicBaseUrl, attempts = 60, del
     const result = await compat.apply(enabled, publicBaseUrl);
     if (result === "ok") return "ok";
     last = result;
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    await new Promise((resolve2) => setTimeout(resolve2, delayMs));
   }
   return last;
 }
@@ -1036,6 +1036,40 @@ function createGatewayHandler(ctx, config, store) {
   };
 }
 
+// src/path-fence.ts
+import { isAbsolute as isAbsolute2, relative, resolve, sep } from "node:path";
+var PATH_FENCED_METHODS = /* @__PURE__ */ new Set(["workspace.create", "session.create", "session.fork"]);
+var PATH_REQUIRED_METHODS = /* @__PURE__ */ new Set(["workspace.create"]);
+var MAX_NODES = 2e3;
+function collectAbsolutePaths(value) {
+  const found = [];
+  const stack = [value];
+  let visited = 0;
+  while (stack.length > 0 && visited < MAX_NODES) {
+    const node = stack.pop();
+    visited += 1;
+    if (typeof node === "string") {
+      if (node.length > 0 && isAbsolute2(node)) found.push(node);
+    } else if (Array.isArray(node)) {
+      stack.push(...node);
+    } else if (node !== null && typeof node === "object") {
+      stack.push(...Object.values(node));
+    }
+  }
+  return stack.length === 0 ? found : void 0;
+}
+function isInsideFolder(root, candidate) {
+  const rel = relative(resolve(root), resolve(candidate));
+  return rel === "" || rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute2(rel);
+}
+function payloadWithinFolder(endpoint, payload, folder) {
+  if (!PATH_FENCED_METHODS.has(endpoint)) return true;
+  const paths = collectAbsolutePaths(payload);
+  if (paths === void 0) return false;
+  if (PATH_REQUIRED_METHODS.has(endpoint) && paths.length === 0) return false;
+  return paths.every((path) => isInsideFolder(folder, path));
+}
+
 // src/bridge-list-filter.ts
 function extractSessionItems(value) {
   const items = envelopeValue(value);
@@ -1169,8 +1203,8 @@ function createApiBridgeAuth(deps) {
     response.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
     response.end("forbidden");
   };
-  const denyQuiet = async (request, response) => {
-    const rpcId = await readRequestRpcId(request);
+  const denyQuiet = async (request, response, knownRpcId) => {
+    const rpcId = knownRpcId ?? await readRequestRpcId(request);
     if (rpcId === void 0) {
       deny403(response);
       return;
@@ -1223,6 +1257,19 @@ function createApiBridgeAuth(deps) {
       deny403(response);
       return;
     }
+    if (deps.userFolder !== void 0 && PATH_FENCED_METHODS.has(endpoint)) {
+      const body = await bufferRequestBody(request);
+      const envelope = body === void 0 ? void 0 : parseClientRequest(body);
+      if (envelope === void 0 || !payloadWithinFolder(endpoint, envelope.payload, deps.userFolder(user.username))) {
+        if (deps.quietDenials && envelope !== void 0) {
+          await denyQuiet(request, response, envelope.rpcId);
+          return;
+        }
+        deny403(response);
+        return;
+      }
+      replayRequestBody(request, body);
+    }
     if (FILTER_METHODS.has(endpoint) || RECORD_METHODS.has(endpoint)) {
       const owned = FILTER_METHODS.has(endpoint) ? await resolveOwned(deps, user.username) : void 0;
       attachResponseTee(response, {
@@ -1265,6 +1312,38 @@ async function readRequestRpcId(request) {
   } catch {
     return void 0;
   }
+}
+async function bufferRequestBody(request) {
+  try {
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of request) {
+      const piece = typeof chunk === "string" ? Buffer.from(chunk, "utf8") : chunk;
+      size += piece.length;
+      if (size > DENY_BODY_LIMIT_BYTES) return void 0;
+      chunks.push(piece);
+    }
+    return Buffer.concat(chunks);
+  } catch {
+    return void 0;
+  }
+}
+function parseClientRequest(body) {
+  try {
+    const parsed = JSON.parse(body.toString("utf8"));
+    if (parsed.type !== "client-request" || typeof parsed.rpcId !== "string" || parsed.rpcId === "") return void 0;
+    return { rpcId: parsed.rpcId, payload: parsed.payload };
+  } catch {
+    return void 0;
+  }
+}
+function replayRequestBody(request, body) {
+  Object.defineProperty(request, Symbol.asyncIterator, {
+    configurable: true,
+    value: async function* () {
+      if (body.length > 0) yield body;
+    }
+  });
 }
 function attachResponseTee(response, context) {
   const raw = response;
@@ -1391,6 +1470,9 @@ import { join } from "node:path";
 function sandboxSegment(username) {
   return username.split(/[/\\]/).join("_").replace(/\.\.+/g, "_").replace(/^\.+/, "_").replace(/[^A-Za-z0-9._-]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "").slice(0, 96) || "user";
 }
+function userSandboxDir(root, username) {
+  return join(root, sandboxSegment(username));
+}
 var DefaultWorkspaceProvisioner = class {
   constructor(deps) {
     this.deps = deps;
@@ -1434,7 +1516,7 @@ var DefaultWorkspaceProvisioner = class {
   async provision(username, root, key, registry) {
     let workspaceId = this.pending.get(key);
     if (workspaceId === void 0) {
-      const dir = join(root, sandboxSegment(username));
+      const dir = userSandboxDir(root, username);
       await mkdir6(dir, { recursive: true });
       const workspace = await registry.create(dir, this.deps.title ?? username);
       workspaceId = workspace.id;
@@ -2731,7 +2813,10 @@ function apply(ctx, config) {
         ownership,
         quietDenials: config.quietDenials,
         ownedProvider,
-        provisioner
+        provisioner,
+        // Ordinary users may only name folders inside their own
+        // <workspace root>/<username> (path-fence.ts); admins are not fenced.
+        userFolder: (username) => userSandboxDir(workspaceRootSetting.get(), username)
       }), { global: true }),
       "dsh-login: /api bridge auth wall"
     );

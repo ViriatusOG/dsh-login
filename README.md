@@ -17,7 +17,7 @@ The DSH web UI has no login: it assumes one person on localhost. Once it is reac
 - **Sign-in wall:** pages, assets, the API and WebSockets all need a valid session. Visitors without one land on `/login`.
 - **Accounts:** the first visit creates the administrator. The admin adds everyone else under Settings → Users.
 - **Separate conversations:** ordinary users see only their own sessions, subagents and workspace. Credentials, plugins, presets and host settings are admin only.
-- **Own workspace per user:** each ordinary user gets a private workspace folder on first visit (`<root>/<username>`), where they create folders for their chats. Admins pick the root folder under Settings → Users (it defaults to `<DSH_HOME>/workspaces`, or the `workspaceRoot` config).
+- **Own workspace per user:** each ordinary user gets a private workspace folder on first visit (`<root>/<username>`), where they create folders for their chats. Admins pick the root folder under Settings → Users (it defaults to `<DSH_HOME>/workspaces`, or the `workspaceRoot` config). Ordinary users can't create workspaces or sessions in any folder outside their own.
 - **User management:** admins see last sign-in and online status, and can reset passwords, disable or remove users. Each change signs that user out at once.
 - **Sessions survive restarts:** the cookie is HttpOnly, SameSite=Strict and lasts 7 days. Passwords are stored as scrypt hashes.
 
