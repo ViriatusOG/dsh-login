@@ -43,7 +43,7 @@ Removing the plugin keeps the accounts (they live in DSH's credential store), so
 
 - **Everyone runs on one machine account.** Accounts keep conversations apart, but every user's agent runs commands on the server as the user DSH runs as. Only give accounts to people you trust with that.
 - **Use HTTPS on the internet.** Over plain HTTP the session cookie is sent in the clear. Put a reverse proxy with TLS (nginx, Caddy) in front for anything beyond a home LAN.
-- **Tunnels and other hosts work.** A host you sign in through once (frp, a tunnel, a LAN address) is trusted from then on. The list is in Settings → Users → Trusted hosts.
+- **Tunnels and other hosts work.** A host you sign in through once (frp, a tunnel, a LAN address) is trusted from then on. The list is in Settings → Users → Allowed hosts.
 - **Ordinary users can't pick host folders.** That's on purpose, and their own workspace is created for them instead.
 
 ## Where data lives
