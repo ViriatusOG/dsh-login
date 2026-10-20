@@ -4,7 +4,7 @@
  * assets. Visual identity: a split screen — left, the dark DSH side (plugin
  * board backdrop, brand, the "everything is a plugin" story with a layered
  * feature list, loaded badge); right, a light card holding the form. User
- * management ships inside the GUI settings panel (设置-用户管理) via the
+ * management ships inside the GUI settings panel (Settings → Users) via the
  * browser bundle, not here.
  */
 
@@ -459,7 +459,7 @@ interface PageOptions {
 /** Shared page shell: dark DSH story pane + light form pane. */
 function renderPage(opts: PageOptions): string {
   return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -474,18 +474,18 @@ function renderPage(opts: PageOptions): string {
       <div class="pane-content">
         <header class="brand">
           <div class="brand-row">${PLUG_SVG}<div class="wordmark">DSH</div></div>
-          <p class="kicker">多用户登录网关，而这道门本身也是一个插件。</p>
-          <p class="lead">DSH 的 Web GUI 按「单用户、localhost」设计——一旦暴露到网络，任何人都能打开它。dsh-login 加一道登录墙，把它变成安全的多用户部署。</p>
+          <p class="kicker">A multi-user sign-in gateway, and the gate itself is a plugin.</p>
+          <p class="lead">The DSH web UI is built for one user on localhost, so once it is on a network anyone can open it. dsh-login puts a sign-in wall in front of it and turns it into a safe multi-user setup.</p>
         </header>
         <ul class="features">
-          <li><i></i><div><b>登录墙</b><span>页面、静态资源、API 与 WebSocket 全部要求有效会话，未登录一律回到这道门</span></div></li>
-          <li><i></i><div><b>会话隔离</b><span>普通用户只看到自己的对话、子代理与工作区；凭据、宿主设置等管理域整体禁用</span></div></li>
-          <li><i></i><div><b>用户管理</b><span>管理员在 设置 → 用户管理 新建、重置密码、禁用、删除，操作立即吊销该用户的会话</span></div></li>
-          <li><i></i><div><b>远程友好</b><span>frp、隧道或局域网访问，登录一次即自动信任主机，无需手动改配置</span></div></li>
+          <li><i></i><div><b>Sign-in wall</b><span>Pages, assets, the API and WebSockets all need a valid session; anyone not signed in comes back to this page</span></div></li>
+          <li><i></i><div><b>Separate sessions</b><span>Ordinary users see only their own chats, subagents and workspace; credentials, host settings and other admin areas are off for them</span></div></li>
+          <li><i></i><div><b>User management</b><span>Admins create, reset, disable and remove users under Settings → Users; each change revokes that user's sessions at once</span></div></li>
+          <li><i></i><div><b>Remote friendly</b><span>Over frp, a tunnel or the LAN, one sign-in trusts the host automatically, with no config to edit</span></div></li>
         </ul>
       </div>
-      <div class="footnote">密码以 scrypt 哈希存储，会话 Cookie 为 HttpOnly，重启后登录依然有效。</div>
-      <div class="loaded"><i></i>dsh-login 已加载</div>
+      <div class="footnote">Passwords are stored as scrypt hashes, the session cookie is HttpOnly, and sign-ins survive a restart.</div>
+      <div class="loaded"><i></i>dsh-login loaded</div>
     </section>
     <section class="pane pane--light">
       <div class="ghost ghost--g1" aria-hidden="true"></div>
@@ -509,19 +509,19 @@ function renderPage(opts: PageOptions): string {
 /** Login page: username + password, POSTs {username, password}. */
 export function renderLoginPage(): string {
   return renderPage({
-    title: 'DSH 登录',
-    heading: '登录 DSH',
-    subtitle: '多用户网关：每人独立会话，权限各归其位。',
+    title: 'Sign in · DSH',
+    heading: 'Sign in to DSH',
+    subtitle: 'Every user has their own account and sessions.',
     fields: `
         <div class="field">
-          <input type="text" name="username" id="username" placeholder="用户名"
+          <input type="text" name="username" id="username" placeholder="Username"
             autocomplete="username" autofocus required>
         </div>
         <div class="field">
-          <input type="password" name="password" id="password" placeholder="密码"
+          <input type="password" name="password" id="password" placeholder="Password"
             autocomplete="current-password" required>
         </div>
-        <button type="submit" id="submit">登录</button>`,
+        <button type="submit" id="submit">Sign in</button>`,
     script: `
     var form = document.getElementById('authForm');
     var username = document.getElementById('username');
@@ -533,7 +533,7 @@ export function renderLoginPage(): string {
       e.preventDefault();
       error.textContent = '';
       submit.disabled = true;
-      submit.textContent = '验证中…';
+      submit.textContent = 'Signing in…';
       try {
         var res = await fetch('/api/auth/login', {
           method: 'POST',
@@ -543,21 +543,21 @@ export function renderLoginPage(): string {
         if (res.ok) {
           window.location = '/';
         } else if (res.status === 401) {
-          error.textContent = '用户名或密码错误';
+          error.textContent = 'Wrong username or password';
           password.value = '';
           password.focus();
         } else if (res.status === 400) {
-          error.textContent = '请求无效';
+          error.textContent = 'Invalid request';
         } else if (res.status === 500) {
-          error.textContent = '尚未创建任何用户，请刷新页面完成初始化';
+          error.textContent = 'No users exist yet. Reload the page to finish setup';
         } else {
-          error.textContent = '未知错误';
+          error.textContent = 'Something went wrong';
         }
       } catch (err) {
-        error.textContent = '网络错误，请重试';
+        error.textContent = 'Network error, please try again';
       } finally {
         submit.disabled = false;
-        submit.textContent = '登录';
+        submit.textContent = 'Sign in';
       }
     });`,
   })
@@ -566,23 +566,23 @@ export function renderLoginPage(): string {
 /** First-time setup page: creates the admin account via {username, password}. */
 export function renderSetupPage(): string {
   return renderPage({
-    title: 'DSH 初始化',
-    heading: '初始化 DSH',
-    subtitle: '创建第一个账户，它将自动成为管理员。',
+    title: 'Set up · DSH',
+    heading: 'Set up DSH',
+    subtitle: 'Create the first account. It becomes the administrator.',
     fields: `
         <div class="field">
-          <input type="text" name="username" id="username" placeholder="用户名"
+          <input type="text" name="username" id="username" placeholder="Username"
             autocomplete="username" autofocus required>
         </div>
         <div class="field">
-          <input type="password" name="password" id="password" placeholder="设置密码"
+          <input type="password" name="password" id="password" placeholder="Choose a password"
             autocomplete="new-password" required>
         </div>
         <div class="field">
-          <input type="password" id="confirm" placeholder="确认密码"
+          <input type="password" id="confirm" placeholder="Confirm password"
             autocomplete="new-password" required>
         </div>
-        <button type="submit" id="submit">创建账户</button>`,
+        <button type="submit" id="submit">Create account</button>`,
     script: `
     var form = document.getElementById('authForm');
     var username = document.getElementById('username');
@@ -595,21 +595,21 @@ export function renderSetupPage(): string {
       e.preventDefault();
       error.textContent = '';
       if (username.value.length < 1) {
-        error.textContent = '用户名不能为空';
+        error.textContent = 'Enter a username';
         return;
       }
       if (pw.value.length < 1) {
-        error.textContent = '密码不能为空';
+        error.textContent = 'Enter a password';
         return;
       }
       if (pw.value !== cf.value) {
-        error.textContent = '两次输入的密码不一致';
+        error.textContent = 'The passwords do not match';
         cf.value = '';
         cf.focus();
         return;
       }
       submit.disabled = true;
-      submit.textContent = '创建中…';
+      submit.textContent = 'Creating…';
       try {
         var res = await fetch('/api/auth/setup', {
           method: 'POST',
@@ -619,17 +619,17 @@ export function renderSetupPage(): string {
         if (res.ok) {
           window.location = '/';
         } else if (res.status === 403) {
-          error.textContent = '初始化已完成，请直接登录';
+          error.textContent = 'Setup is already done. Please sign in';
         } else if (res.status === 400) {
-          error.textContent = '请求无效（用户名限字母、数字、下划线和连字符，最长 32 位）';
+          error.textContent = 'Invalid request (usernames use letters, digits, _ and -, up to 32 characters)';
         } else {
-          error.textContent = '未知错误';
+          error.textContent = 'Something went wrong';
         }
       } catch (err) {
-        error.textContent = '网络错误，请重试';
+        error.textContent = 'Network error, please try again';
       } finally {
         submit.disabled = false;
-        submit.textContent = '创建账户';
+        submit.textContent = 'Create account';
       }
     });`,
   })

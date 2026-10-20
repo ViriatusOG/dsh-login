@@ -2156,7 +2156,7 @@ var PLUG_SVG = `
       </svg>`;
 function renderPage(opts) {
   return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2171,18 +2171,18 @@ function renderPage(opts) {
       <div class="pane-content">
         <header class="brand">
           <div class="brand-row">${PLUG_SVG}<div class="wordmark">DSH</div></div>
-          <p class="kicker">\u591A\u7528\u6237\u767B\u5F55\u7F51\u5173\uFF0C\u800C\u8FD9\u9053\u95E8\u672C\u8EAB\u4E5F\u662F\u4E00\u4E2A\u63D2\u4EF6\u3002</p>
-          <p class="lead">DSH \u7684 Web GUI \u6309\u300C\u5355\u7528\u6237\u3001localhost\u300D\u8BBE\u8BA1\u2014\u2014\u4E00\u65E6\u66B4\u9732\u5230\u7F51\u7EDC\uFF0C\u4EFB\u4F55\u4EBA\u90FD\u80FD\u6253\u5F00\u5B83\u3002dsh-login \u52A0\u4E00\u9053\u767B\u5F55\u5899\uFF0C\u628A\u5B83\u53D8\u6210\u5B89\u5168\u7684\u591A\u7528\u6237\u90E8\u7F72\u3002</p>
+          <p class="kicker">A multi-user sign-in gateway, and the gate itself is a plugin.</p>
+          <p class="lead">The DSH web UI is built for one user on localhost, so once it is on a network anyone can open it. dsh-login puts a sign-in wall in front of it and turns it into a safe multi-user setup.</p>
         </header>
         <ul class="features">
-          <li><i></i><div><b>\u767B\u5F55\u5899</b><span>\u9875\u9762\u3001\u9759\u6001\u8D44\u6E90\u3001API \u4E0E WebSocket \u5168\u90E8\u8981\u6C42\u6709\u6548\u4F1A\u8BDD\uFF0C\u672A\u767B\u5F55\u4E00\u5F8B\u56DE\u5230\u8FD9\u9053\u95E8</span></div></li>
-          <li><i></i><div><b>\u4F1A\u8BDD\u9694\u79BB</b><span>\u666E\u901A\u7528\u6237\u53EA\u770B\u5230\u81EA\u5DF1\u7684\u5BF9\u8BDD\u3001\u5B50\u4EE3\u7406\u4E0E\u5DE5\u4F5C\u533A\uFF1B\u51ED\u636E\u3001\u5BBF\u4E3B\u8BBE\u7F6E\u7B49\u7BA1\u7406\u57DF\u6574\u4F53\u7981\u7528</span></div></li>
-          <li><i></i><div><b>\u7528\u6237\u7BA1\u7406</b><span>\u7BA1\u7406\u5458\u5728 \u8BBE\u7F6E \u2192 \u7528\u6237\u7BA1\u7406 \u65B0\u5EFA\u3001\u91CD\u7F6E\u5BC6\u7801\u3001\u7981\u7528\u3001\u5220\u9664\uFF0C\u64CD\u4F5C\u7ACB\u5373\u540A\u9500\u8BE5\u7528\u6237\u7684\u4F1A\u8BDD</span></div></li>
-          <li><i></i><div><b>\u8FDC\u7A0B\u53CB\u597D</b><span>frp\u3001\u96A7\u9053\u6216\u5C40\u57DF\u7F51\u8BBF\u95EE\uFF0C\u767B\u5F55\u4E00\u6B21\u5373\u81EA\u52A8\u4FE1\u4EFB\u4E3B\u673A\uFF0C\u65E0\u9700\u624B\u52A8\u6539\u914D\u7F6E</span></div></li>
+          <li><i></i><div><b>Sign-in wall</b><span>Pages, assets, the API and WebSockets all need a valid session; anyone not signed in comes back to this page</span></div></li>
+          <li><i></i><div><b>Separate sessions</b><span>Ordinary users see only their own chats, subagents and workspace; credentials, host settings and other admin areas are off for them</span></div></li>
+          <li><i></i><div><b>User management</b><span>Admins create, reset, disable and remove users under Settings \u2192 Users; each change revokes that user's sessions at once</span></div></li>
+          <li><i></i><div><b>Remote friendly</b><span>Over frp, a tunnel or the LAN, one sign-in trusts the host automatically, with no config to edit</span></div></li>
         </ul>
       </div>
-      <div class="footnote">\u5BC6\u7801\u4EE5 scrypt \u54C8\u5E0C\u5B58\u50A8\uFF0C\u4F1A\u8BDD Cookie \u4E3A HttpOnly\uFF0C\u91CD\u542F\u540E\u767B\u5F55\u4F9D\u7136\u6709\u6548\u3002</div>
-      <div class="loaded"><i></i>dsh-login \u5DF2\u52A0\u8F7D</div>
+      <div class="footnote">Passwords are stored as scrypt hashes, the session cookie is HttpOnly, and sign-ins survive a restart.</div>
+      <div class="loaded"><i></i>dsh-login loaded</div>
     </section>
     <section class="pane pane--light">
       <div class="ghost ghost--g1" aria-hidden="true"></div>
@@ -2204,19 +2204,19 @@ function renderPage(opts) {
 }
 function renderLoginPage() {
   return renderPage({
-    title: "DSH \u767B\u5F55",
-    heading: "\u767B\u5F55 DSH",
-    subtitle: "\u591A\u7528\u6237\u7F51\u5173\uFF1A\u6BCF\u4EBA\u72EC\u7ACB\u4F1A\u8BDD\uFF0C\u6743\u9650\u5404\u5F52\u5176\u4F4D\u3002",
+    title: "Sign in \xB7 DSH",
+    heading: "Sign in to DSH",
+    subtitle: "Every user has their own account and sessions.",
     fields: `
         <div class="field">
-          <input type="text" name="username" id="username" placeholder="\u7528\u6237\u540D"
+          <input type="text" name="username" id="username" placeholder="Username"
             autocomplete="username" autofocus required>
         </div>
         <div class="field">
-          <input type="password" name="password" id="password" placeholder="\u5BC6\u7801"
+          <input type="password" name="password" id="password" placeholder="Password"
             autocomplete="current-password" required>
         </div>
-        <button type="submit" id="submit">\u767B\u5F55</button>`,
+        <button type="submit" id="submit">Sign in</button>`,
     script: `
     var form = document.getElementById('authForm');
     var username = document.getElementById('username');
@@ -2228,7 +2228,7 @@ function renderLoginPage() {
       e.preventDefault();
       error.textContent = '';
       submit.disabled = true;
-      submit.textContent = '\u9A8C\u8BC1\u4E2D\u2026';
+      submit.textContent = 'Signing in\u2026';
       try {
         var res = await fetch('/api/auth/login', {
           method: 'POST',
@@ -2238,44 +2238,44 @@ function renderLoginPage() {
         if (res.ok) {
           window.location = '/';
         } else if (res.status === 401) {
-          error.textContent = '\u7528\u6237\u540D\u6216\u5BC6\u7801\u9519\u8BEF';
+          error.textContent = 'Wrong username or password';
           password.value = '';
           password.focus();
         } else if (res.status === 400) {
-          error.textContent = '\u8BF7\u6C42\u65E0\u6548';
+          error.textContent = 'Invalid request';
         } else if (res.status === 500) {
-          error.textContent = '\u5C1A\u672A\u521B\u5EFA\u4EFB\u4F55\u7528\u6237\uFF0C\u8BF7\u5237\u65B0\u9875\u9762\u5B8C\u6210\u521D\u59CB\u5316';
+          error.textContent = 'No users exist yet. Reload the page to finish setup';
         } else {
-          error.textContent = '\u672A\u77E5\u9519\u8BEF';
+          error.textContent = 'Something went wrong';
         }
       } catch (err) {
-        error.textContent = '\u7F51\u7EDC\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5';
+        error.textContent = 'Network error, please try again';
       } finally {
         submit.disabled = false;
-        submit.textContent = '\u767B\u5F55';
+        submit.textContent = 'Sign in';
       }
     });`
   });
 }
 function renderSetupPage() {
   return renderPage({
-    title: "DSH \u521D\u59CB\u5316",
-    heading: "\u521D\u59CB\u5316 DSH",
-    subtitle: "\u521B\u5EFA\u7B2C\u4E00\u4E2A\u8D26\u6237\uFF0C\u5B83\u5C06\u81EA\u52A8\u6210\u4E3A\u7BA1\u7406\u5458\u3002",
+    title: "Set up \xB7 DSH",
+    heading: "Set up DSH",
+    subtitle: "Create the first account. It becomes the administrator.",
     fields: `
         <div class="field">
-          <input type="text" name="username" id="username" placeholder="\u7528\u6237\u540D"
+          <input type="text" name="username" id="username" placeholder="Username"
             autocomplete="username" autofocus required>
         </div>
         <div class="field">
-          <input type="password" name="password" id="password" placeholder="\u8BBE\u7F6E\u5BC6\u7801"
+          <input type="password" name="password" id="password" placeholder="Choose a password"
             autocomplete="new-password" required>
         </div>
         <div class="field">
-          <input type="password" id="confirm" placeholder="\u786E\u8BA4\u5BC6\u7801"
+          <input type="password" id="confirm" placeholder="Confirm password"
             autocomplete="new-password" required>
         </div>
-        <button type="submit" id="submit">\u521B\u5EFA\u8D26\u6237</button>`,
+        <button type="submit" id="submit">Create account</button>`,
     script: `
     var form = document.getElementById('authForm');
     var username = document.getElementById('username');
@@ -2288,21 +2288,21 @@ function renderSetupPage() {
       e.preventDefault();
       error.textContent = '';
       if (username.value.length < 1) {
-        error.textContent = '\u7528\u6237\u540D\u4E0D\u80FD\u4E3A\u7A7A';
+        error.textContent = 'Enter a username';
         return;
       }
       if (pw.value.length < 1) {
-        error.textContent = '\u5BC6\u7801\u4E0D\u80FD\u4E3A\u7A7A';
+        error.textContent = 'Enter a password';
         return;
       }
       if (pw.value !== cf.value) {
-        error.textContent = '\u4E24\u6B21\u8F93\u5165\u7684\u5BC6\u7801\u4E0D\u4E00\u81F4';
+        error.textContent = 'The passwords do not match';
         cf.value = '';
         cf.focus();
         return;
       }
       submit.disabled = true;
-      submit.textContent = '\u521B\u5EFA\u4E2D\u2026';
+      submit.textContent = 'Creating\u2026';
       try {
         var res = await fetch('/api/auth/setup', {
           method: 'POST',
@@ -2312,17 +2312,17 @@ function renderSetupPage() {
         if (res.ok) {
           window.location = '/';
         } else if (res.status === 403) {
-          error.textContent = '\u521D\u59CB\u5316\u5DF2\u5B8C\u6210\uFF0C\u8BF7\u76F4\u63A5\u767B\u5F55';
+          error.textContent = 'Setup is already done. Please sign in';
         } else if (res.status === 400) {
-          error.textContent = '\u8BF7\u6C42\u65E0\u6548\uFF08\u7528\u6237\u540D\u9650\u5B57\u6BCD\u3001\u6570\u5B57\u3001\u4E0B\u5212\u7EBF\u548C\u8FDE\u5B57\u7B26\uFF0C\u6700\u957F 32 \u4F4D\uFF09';
+          error.textContent = 'Invalid request (usernames use letters, digits, _ and -, up to 32 characters)';
         } else {
-          error.textContent = '\u672A\u77E5\u9519\u8BEF';
+          error.textContent = 'Something went wrong';
         }
       } catch (err) {
-        error.textContent = '\u7F51\u7EDC\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5';
+        error.textContent = 'Network error, please try again';
       } finally {
         submit.disabled = false;
-        submit.textContent = '\u521B\u5EFA\u8D26\u6237';
+        submit.textContent = 'Create account';
       }
     });`
   });

@@ -1,7 +1,7 @@
 {
   "name": "@islibaodong/dsh-login",
   "description": "Multi-user authentication gateway plugin for the DSH Web GUI, with per-role whole-UI gating",
-  "version": "0.3.5",
+  "version": "0.3.5-en.1",
   "type": "module",
   "main": "dist/index.js",
   "exports": {
@@ -18,8 +18,7 @@
     "build:host": "node scripts/build-host.mjs",
     "build:client": "node scripts/build-client.mjs",
     "build": "npm run build:host && npm run build:client",
-    "verify:imports": "node --import tsx/esm scripts/verify-imports.mjs",
-    "prepack": "npm run build"
+    "verify:imports": "node --import tsx/esm scripts/verify-imports.mjs"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
@@ -71,7 +70,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/islibaodong/dsh-login.git"
+    "url": "git+https://github.com/ViriatusOG/dsh-login.git"
   },
   "files": [
     "src",
