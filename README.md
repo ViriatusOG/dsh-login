@@ -73,7 +73,7 @@ This controls where workspaces are created and which ones users see. It is not a
 
 ## Keeping up with upstream
 
-Versions are upstream's plus `-en.N` (this one is `0.3.5-en.1`). For a new upstream release:
+Versions are upstream's plus `-en.N` (this one is `0.3.5-en.2`). For a new upstream release:
 
 1. Merge upstream into `master`.
 2. If `src/login-page.ts` changed, re-apply the English text.
