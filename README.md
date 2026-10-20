@@ -1,5 +1,7 @@
 # dsh-login
 
+> **ViriatusOG fork.** Same plugin as [islibaodong/dsh-login](https://github.com/islibaodong/dsh-login), with the sign-in and first-time setup pages in English (`src/login-page.ts`, rebuilt into `dist/`). The package keeps its upstream name, so it replaces upstream in a DSH profile. Install with `dsh plugin --profile web add github:ViriatusOG/dsh-login#v0.3.5-en.1`. `dist/` is committed and `prepack` is removed, so installing from git runs no build. Versions are upstream's plus `-en.N`.
+
 English | [简体中文](./README.zh.md)
 
 Adds a **login page, user accounts, and per-user conversation isolation** to the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web GUI: every visit requires sign-in, ordinary users cannot see each other's conversations, and an admin manages all accounts from inside the GUI.
