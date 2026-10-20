@@ -55,8 +55,14 @@ export interface WorkspaceRegistryLike {
 }
 
 export interface ProvisionDeps {
-  /** Root directory holding every user's sandbox (e.g. `<dshHome>/workspaces`). */
-  workspaceRoot: string
+  /**
+   * Root directory holding every user's sandbox (e.g. `<dshHome>/workspaces`).
+   * A function is read on every attempt, so an admin changing the root from
+   * the settings panel applies without a restart: each user is provisioned
+   * once per root, and a new root gets a fresh `<root>/<username>` workspace
+   * (workspaces under the previous root are left in place).
+   */
+  workspaceRoot: string | (() => string)
   /** Accessor for the session.create adapter; re-resolved on every attempt. */
   getApi: () => ProvisionSessionCreateApi
   /** Ownership index the dsh-login fiber owns; the seeded session is attributed to it. */
@@ -101,8 +107,9 @@ export function sandboxSegment(username: string): string {
  * workspace exists exactly once per process.
  */
 export class DefaultWorkspaceProvisioner {
+  /** Provisioned `root\0username` keys. */
   private readonly done = new Set<string>()
-  /** Workspaces already registered but not yet seeded with a session, by username. */
+  /** Workspaces already registered but not yet seeded with a session, by root + username. */
   private readonly pending = new Map<string, string>()
 
   constructor(private readonly deps: ProvisionDeps) {}
@@ -119,32 +126,41 @@ export class DefaultWorkspaceProvisioner {
     if (user.isAdmin) return
     // Live toggle: when the admin has turned provisioning off, skip. Note we
     // clear the done-set entry so re-enabling later lets the user be provisioned.
+    const root = this.currentRoot()
+    // Keyed by root + username: a root change re-provisions into the new root.
+    const key = `${root}\0${user.username}`
     if (this.deps.enabled !== undefined && !this.deps.enabled()) {
-      this.done.delete(user.username)
+      this.done.delete(key)
       return
     }
-    if (this.done.has(user.username)) return
+    if (this.done.has(key)) return
     const registry = this.deps.workspaceRegistry ?? this.deps.getRegistry?.()
     if (registry === undefined) return
-    this.done.add(user.username)
+    this.done.add(key)
     try {
-      await this.provision(user.username, registry)
+      await this.provision(user.username, root, key, registry)
     } catch {
       // Best-effort: leave the user un-provisioned for a possible retry.
-      this.done.delete(user.username)
+      this.done.delete(key)
     }
   }
 
-  private async provision(username: string, registry: WorkspaceRegistryLike): Promise<void> {
+  /** The sandbox root in effect right now. */
+  private currentRoot(): string {
+    const root = this.deps.workspaceRoot
+    return typeof root === 'function' ? root() : root
+  }
+
+  private async provision(username: string, root: string, key: string, registry: WorkspaceRegistryLike): Promise<void> {
     // Half 1 — the sandbox + registered workspace. Reuse a remembered id
     // from an earlier partial attempt so a retry never double-registers.
-    let workspaceId = this.pending.get(username)
+    let workspaceId = this.pending.get(key)
     if (workspaceId === undefined) {
-      const dir = join(this.deps.workspaceRoot, sandboxSegment(username))
+      const dir = join(root, sandboxSegment(username))
       await mkdir(dir, { recursive: true })
       const workspace = await registry.create(dir, this.deps.title ?? username)
       workspaceId = workspace.id
-      this.pending.set(username, workspaceId)
+      this.pending.set(key, workspaceId)
     }
     // Half 2 — seed one attached session through the workspaceId shape (the
     // GUI's own path) so it is grouped into the workspace's sessionIds and
@@ -161,6 +177,6 @@ export class DefaultWorkspaceProvisioner {
       throw new Error('dsh-login: session.create returned no usable sessionId for default-workspace provisioning')
     }
     this.deps.ownership.record(res.result.value.sessionId, username)
-    this.pending.delete(username)
+    this.pending.delete(key)
   }
 }

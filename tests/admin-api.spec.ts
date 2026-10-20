@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -16,6 +16,7 @@ import { createAdminRoutes } from '../src/admin-api.ts'
 import { TrustedHosts } from '../src/hosts.ts'
 import { DefaultWorkspaceSetting } from '../src/workspace-setting.ts'
 import { BooleanSetting } from '../src/boolean-setting.ts'
+import { WorkspaceRootSetting } from '../src/workspace-root-setting.ts'
 
 let root: string | undefined
 let context: Context | undefined
@@ -39,6 +40,8 @@ async function boot(seed?: { rootPassword?: string; compat?: { onApply?: (enable
   hosts: TrustedHosts
   setting: DefaultWorkspaceSetting
   compatSetting: BooleanSetting
+  rootSetting: WorkspaceRootSetting
+  root: string
 }> {
   root = await mkdtemp(join(tmpdir(), 'dsh-login-admin-'))
   const configPath = join(root, 'cordis.yml')
@@ -69,18 +72,19 @@ async function boot(seed?: { rootPassword?: string; compat?: { onApply?: (enable
   const hosts = new TrustedHosts(join(root, 'trusted-hosts.json'))
   const setting = new DefaultWorkspaceSetting(join(root, 'settings.json'), true)
   const compatSetting = new BooleanSetting(join(root, 'settings-remote-web-ui.json'), true)
+  const rootSetting = new WorkspaceRootSetting(join(root, 'settings-workspace-root.json'), join(root, 'workspaces'))
   if (seed?.rootPassword !== undefined) await users.create('root', seed.rootPassword, true)
   await users.create('bob', 'bobpw', false)
-  ctx_routes(context, users, store, hosts, setting, compatSetting, seed?.compat?.onApply)
-  return { ctx: context, port: context.webServer.port, users, store, hosts, setting, compatSetting }
+  ctx_routes(context, users, store, hosts, setting, compatSetting, seed?.compat?.onApply, rootSetting)
+  return { ctx: context, port: context.webServer.port, users, store, hosts, setting, compatSetting, rootSetting, root }
 }
 
-function ctx_routes(ctx: Context, users: UserStore, store: SessionStore, hosts?: TrustedHosts, setting?: DefaultWorkspaceSetting, compatSetting?: BooleanSetting, onRemoteWebUiApply?: (enabled: boolean) => Promise<string>): void {
+function ctx_routes(ctx: Context, users: UserStore, store: SessionStore, hosts?: TrustedHosts, setting?: DefaultWorkspaceSetting, compatSetting?: BooleanSetting, onRemoteWebUiApply?: (enabled: boolean) => Promise<string>, workspaceRootSetting?: WorkspaceRootSetting): void {
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact', path: '/api/auth/login',
     handler: createLoginHandler({ users, store, sessionTtl: 3600 }),
   }), 'login')
-  for (const route of createAdminRoutes({ users, store, hosts, defaultWorkspaceSetting: setting, remoteWebUiSetting: compatSetting, onRemoteWebUiApply })) {
+  for (const route of createAdminRoutes({ users, store, hosts, defaultWorkspaceSetting: setting, workspaceRootSetting, remoteWebUiSetting: compatSetting, onRemoteWebUiApply })) {
     ctx.effect(() => ctx.webServer.register(route), `admin: ${route.path}`)
   }
 }
@@ -422,6 +426,40 @@ describe('/api/auth/admin/settings/default-workspace', () => {
     expect((await req(port, 'GET', '/api/auth/admin/settings/default-workspace', undefined, bobCookie)).status).toBe(403)
     expect((await req(port, 'POST', '/api/auth/admin/settings/default-workspace', { enabled: true }, bobCookie)).status).toBe(403)
     expect((await req(port, 'GET', '/api/auth/admin/settings/default-workspace')).status).toBe(401)
+  })
+})
+
+describe('/api/auth/admin/settings/workspace-root', () => {
+  it('reports the fallback, sets an admin folder (creating it), and resets to the fallback', { timeout: 60_000 }, async () => {
+    const { port, rootSetting, root: tmp } = await boot({ rootPassword: 'rootpw' })
+    const cookie = await loginCookie(port, 'root', 'rootpw')
+    const fallback = join(tmp, 'workspaces')
+    expect((await req(port, 'GET', '/api/auth/admin/settings/workspace-root', undefined, cookie)).json)
+      .toEqual({ path: fallback, isDefault: true, defaultPath: fallback })
+
+    const chosen = join(tmp, 'team', 'chats')
+    const set = await req(port, 'POST', '/api/auth/admin/settings/workspace-root', { path: `${chosen}/` }, cookie)
+    expect(set.status).toBe(200)
+    expect(set.json).toEqual({ ok: true, path: chosen, isDefault: false, defaultPath: fallback })
+    expect(rootSetting.get()).toBe(chosen)
+    expect((await stat(chosen)).isDirectory()).toBe(true)
+
+    const reset = await req(port, 'POST', '/api/auth/admin/settings/workspace-root', { path: '' }, cookie)
+    expect(reset.json).toEqual({ ok: true, path: fallback, isDefault: true, defaultPath: fallback })
+    await rootSetting.flush()
+  })
+
+  it('rejects relative paths and bad input, is admin-gated (403), and anonymous (401)', { timeout: 60_000 }, async () => {
+    const { port, rootSetting } = await boot({ rootPassword: 'rootpw' })
+    const rootCookie = await loginCookie(port, 'root', 'rootpw')
+    expect((await req(port, 'POST', '/api/auth/admin/settings/workspace-root', { path: 'relative/dir' }, rootCookie)).status).toBe(400)
+    expect((await req(port, 'POST', '/api/auth/admin/settings/workspace-root', { path: 42 }, rootCookie)).status).toBe(400)
+    expect((await req(port, 'POST', '/api/auth/admin/settings/workspace-root', {}, rootCookie)).status).toBe(400)
+    expect(rootSetting.isDefault()).toBe(true)
+    const bobCookie = await loginCookie(port, 'bob', 'bobpw')
+    expect((await req(port, 'GET', '/api/auth/admin/settings/workspace-root', undefined, bobCookie)).status).toBe(403)
+    expect((await req(port, 'POST', '/api/auth/admin/settings/workspace-root', { path: '/tmp/x' }, bobCookie)).status).toBe(403)
+    expect((await req(port, 'GET', '/api/auth/admin/settings/workspace-root')).status).toBe(401)
   })
 })
 

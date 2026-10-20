@@ -12,6 +12,7 @@ import { UserStore } from './users.ts'
 import { OwnershipIndex } from './ownership.ts'
 import { TrustedHosts } from './hosts.ts'
 import { DefaultWorkspaceSetting } from './workspace-setting.ts'
+import { WorkspaceRootSetting } from './workspace-root-setting.ts'
 import { BooleanSetting } from './boolean-setting.ts'
 import { applyWithRetry, RemoteWebUiCompat, type RemoteWebUiCompatDeps } from './remote-web-ui-compat.ts'
 import { createGatewayHandler } from './gateway.ts'
@@ -121,9 +122,14 @@ export function apply(ctx: Context, config: Config): void {
   // service is guaranteed to be registered at dsh-login's apply time. It
   // reads the defaultWorkspace toggle live so the admin switch binds without
   // a restart.
-  const workspaceRoot = config.workspaceRoot === '' ? join(resolveDshHome(), 'workspaces') : config.workspaceRoot
+  // The root is admin-settable at runtime (设置-用户管理); the config value
+  // (or <dshHome>/workspaces) is the fallback when no override is stored.
+  const workspaceRootSetting = new WorkspaceRootSetting(
+    join(dataDir, 'settings-workspace-root.json'),
+    config.workspaceRoot === '' ? join(resolveDshHome(), 'workspaces') : config.workspaceRoot,
+  )
   const provisioner = new DefaultWorkspaceProvisioner({
-    workspaceRoot,
+    workspaceRoot: () => workspaceRootSetting.get(),
     getApi: createHostSessionApi(ctx),
     ownership,
     getRegistry: () => tryGetService<WorkspaceRegistryLike>(ctx, 'workspaceRegistry'),
@@ -171,7 +177,7 @@ export function apply(ctx: Context, config: Config): void {
     path: '/logout',
     handler: createLogoutRedirectHandler(store),
   }), 'dsh-login: /logout')
-  for (const route of createAdminRoutes({ users, store, hosts, defaultWorkspaceSetting, remoteWebUiSetting, remoteWebUiCompat, onRemoteWebUiApply: (enabled) => applyWithRetry(remoteWebUiCompat, enabled, config.remoteWebUiPublicBaseUrl, 3, 50) })) {
+  for (const route of createAdminRoutes({ users, store, hosts, defaultWorkspaceSetting, workspaceRootSetting, remoteWebUiSetting, remoteWebUiCompat, onRemoteWebUiApply: (enabled) => applyWithRetry(remoteWebUiCompat, enabled, config.remoteWebUiPublicBaseUrl, 3, 50) })) {
     ctx.effect(() => ctx.webServer.register(route), `dsh-login: ${route.path}`)
   }
   // Boot-time application of the remote-web-ui compatibility toggle. Deferred
@@ -224,5 +230,5 @@ export function apply(ctx: Context, config: Config): void {
   // Teardown: flush any pending ownership-index / trusted-hosts writes to
   // disk. Returning the Promise lets Cordis await it on stop so a freshly
   // learned host (debounce still pending) is not dropped (review #3).
-  ctx.effect(() => () => Promise.all([store.flush(), ownership.flush(), hosts.flush(), defaultWorkspaceSetting.flush(), remoteWebUiSetting.flush()]), 'dsh-login: sessions + ownership + hosts + settings flush')
+  ctx.effect(() => () => Promise.all([store.flush(), ownership.flush(), hosts.flush(), defaultWorkspaceSetting.flush(), workspaceRootSetting.flush(), remoteWebUiSetting.flush()]), 'dsh-login: sessions + ownership + hosts + settings flush')
 }
