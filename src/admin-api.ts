@@ -16,7 +16,10 @@ import { MAX_HOST_LENGTH, isBareAuthority } from './hosts.ts'
 import type { TrustedHosts } from './hosts.ts'
 import { readBody, sendJson } from './http-json.ts'
 import { extractSessionToken } from './auth.ts'
+import { mkdir } from 'node:fs/promises'
 import type { DefaultWorkspaceSetting } from './workspace-setting.ts'
+import type { WorkspaceRootSetting } from './workspace-root-setting.ts'
+import { normalizeWorkspaceRoot } from './workspace-root-setting.ts'
 import type { BooleanSetting } from './boolean-setting.ts'
 import type { CompatApplyResult } from './remote-web-ui-compat.ts'
 import { deriveCapabilities } from './capabilities.ts'
@@ -29,6 +32,8 @@ export interface AdminDeps {
   hosts?: TrustedHosts
   /** Live + persisted "默认用户工作空间" toggle. Optional for back-compat. */
   defaultWorkspaceSetting?: DefaultWorkspaceSetting
+  /** Live + persisted admin-chosen folder holding every user's workspace. Optional for back-compat. */
+  workspaceRootSetting?: WorkspaceRootSetting
   /** Live + persisted "remote-web-ui 兼容" toggle. Optional for back-compat. */
   remoteWebUiSetting?: BooleanSetting
   /** Runtime applier of the compat flag to remote-web-ui (returns the outcome). */
@@ -231,6 +236,29 @@ export function createAdminRoutes(deps: AdminDeps): WebRoute[] {
     return sendJson(res, 200, { ok: true, enabled: setting.get() })
   } }
 
+  // Live + persisted workspace root: the folder each ordinary user's default
+  // workspace is created in (`<root>/<username>`). POST `{ path }` sets it
+  // (absolute only; created if missing so a typo fails here, not on a user's
+  // first request); `{ path: '' }` restores the configured fallback.
+  const rootSetting = deps.workspaceRootSetting
+  const rootSettingRoute: WebRoute | undefined = rootSetting === undefined ? undefined : { kind: 'exact', path: '/api/auth/admin/settings/workspace-root', handler: async (req, res) => {
+    if (requireAdmin(deps, req, res) === undefined) return
+    const describe = () => ({ path: rootSetting.get(), isDefault: rootSetting.isDefault(), defaultPath: rootSetting.fallback })
+    if (req.method === 'GET') return sendJson(res, 200, describe())
+    if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
+    const body = await readJsonObject(req)
+    if (body === null || typeof body.path !== 'string') return sendJson(res, 400, { error: 'bad request' })
+    const next = body.path.trim() === '' ? rootSetting.fallback : normalizeWorkspaceRoot(body.path)
+    if (next === undefined) return sendJson(res, 400, { error: 'path must be absolute' })
+    try {
+      await mkdir(next, { recursive: true })
+    } catch (err) {
+      return sendJson(res, 400, { error: `cannot create folder: ${err instanceof Error ? err.message : String(err)}` })
+    }
+    rootSetting.set(body.path)
+    return sendJson(res, 200, { ok: true, ...describe() })
+  } }
+
   // Live + persisted "remote-web-ui 兼容" toggle. When enabled, dsh-login writes
   // @linxin666/dsh-remote-web-ui's requirePairingForLan to false so non-loopback
   // (public FRP) desktop traffic rides dsh-login's /api channel instead of
@@ -253,6 +281,7 @@ export function createAdminRoutes(deps: AdminDeps): WebRoute[] {
   const routes: WebRoute[] = [me, capabilitiesRoute, usersRoute, userPassword, userRemove, userDisable]
   if (hostsRoute !== undefined) routes.push(hostsRoute)
   if (settingRoute !== undefined) routes.push(settingRoute)
+  if (rootSettingRoute !== undefined) routes.push(rootSettingRoute)
   if (remoteSettingRoute !== undefined) routes.push(remoteSettingRoute)
   return routes
 }

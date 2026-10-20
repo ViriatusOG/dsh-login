@@ -496,6 +496,92 @@ var BooleanSetting = class {
 var DefaultWorkspaceSetting = class extends BooleanSetting {
 };
 
+// src/workspace-root-setting.ts
+import { mkdir as mkdir5, writeFile as writeFile5 } from "node:fs/promises";
+import { readFileSync as readFileSync5 } from "node:fs";
+import { dirname as dirname5, isAbsolute, normalize } from "node:path";
+var SAVE_DEBOUNCE_MS5 = 200;
+var MAX_WORKSPACE_ROOT_LENGTH = 4096;
+function normalizeWorkspaceRoot(value) {
+  const trimmed = value.trim();
+  if (trimmed === "" || trimmed.length > MAX_WORKSPACE_ROOT_LENGTH || trimmed.includes("\0")) return void 0;
+  if (!isAbsolute(trimmed)) return void 0;
+  const normalized = normalize(trimmed);
+  const trimmedEnd = normalized.replace(/[/\\]+$/, "");
+  return trimmedEnd !== "" && isAbsolute(trimmedEnd) && !/^[A-Za-z]:$/.test(trimmedEnd) ? trimmedEnd : normalized;
+}
+var WorkspaceRootSetting = class {
+  /**
+   * @param filePath JSON file holding `{ path: string }`.
+   * @param fallback Root used while no admin override is set (the resolved config value).
+   */
+  constructor(filePath, fallback) {
+    this.filePath = filePath;
+    this.fallback = fallback;
+    try {
+      const parsed = JSON.parse(readFileSync5(filePath, "utf8"));
+      const path = parsed !== null && typeof parsed === "object" ? parsed.path : void 0;
+      if (typeof path === "string") this.override = normalizeWorkspaceRoot(path);
+    } catch {
+    }
+  }
+  filePath;
+  fallback;
+  /** Admin override; undefined means "use the fallback". */
+  override;
+  saveTimer;
+  /** Tail of a single serialized write queue; writes never overlap. */
+  saving = Promise.resolve();
+  /** The root currently in effect. */
+  get() {
+    return this.override ?? this.fallback;
+  }
+  /** Whether the effective root is the fallback (no admin override). */
+  isDefault() {
+    return this.override === void 0;
+  }
+  /**
+   * Set the admin override (`''` clears it back to the fallback) and persist
+   * it. Returns the effective root, or undefined when `path` is invalid (the
+   * current value is then left unchanged).
+   */
+  set(path) {
+    if (path.trim() === "") {
+      this.override = void 0;
+    } else {
+      const normalized = normalizeWorkspaceRoot(path);
+      if (normalized === void 0) return void 0;
+      this.override = normalized;
+    }
+    this.scheduleSave();
+    return this.get();
+  }
+  /** Force the pending save; resolves when the queued write settled. */
+  async flush() {
+    if (this.saveTimer !== void 0) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = void 0;
+    }
+    this.saving = this.saving.then(() => this.writeNow());
+    await this.saving;
+  }
+  scheduleSave() {
+    if (this.saveTimer !== void 0) return;
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = void 0;
+      this.saving = this.saving.then(() => this.writeNow());
+    }, SAVE_DEBOUNCE_MS5);
+  }
+  async writeNow() {
+    try {
+      await mkdir5(dirname5(this.filePath), { recursive: true });
+      await writeFile5(this.filePath, `${JSON.stringify({ path: this.override ?? "" })}
+`, "utf8");
+    } catch {
+    }
+  }
+};
+
 // src/remote-web-ui-compat.ts
 var REMOTE_WEB_UI_NAMESPACE = "remote-web-ui";
 var RemoteWebUiCompat = class {
@@ -548,14 +634,14 @@ async function applyWithRetry(compat, enabled, publicBaseUrl, attempts = 60, del
     const result = await compat.apply(enabled, publicBaseUrl);
     if (result === "ok") return "ok";
     last = result;
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    await new Promise((resolve2) => setTimeout(resolve2, delayMs));
   }
   return last;
 }
 
 // src/gateway.ts
 import { readFile } from "node:fs/promises";
-import { dirname as dirname5 } from "node:path";
+import { dirname as dirname6 } from "node:path";
 import { serveStatic } from "@deepseek-ai/dsh-host-frontend-static";
 
 // src/auth.ts
@@ -920,7 +1006,7 @@ function createAuthorizeIndex(ctx) {
   };
 }
 function createGatewayHandler(ctx, config, store) {
-  const distRoot = dirname5(config.distIndex);
+  const distRoot = dirname6(config.distIndex);
   const renderIndex = indexRenderer(ctx, config.distIndex);
   const authorizeIndex = createAuthorizeIndex(ctx);
   return async (req, res) => {
@@ -948,6 +1034,40 @@ function createGatewayHandler(ctx, config, store) {
       render
     );
   };
+}
+
+// src/path-fence.ts
+import { isAbsolute as isAbsolute2, relative, resolve, sep } from "node:path";
+var PATH_FENCED_METHODS = /* @__PURE__ */ new Set(["workspace.create", "session.create", "session.fork"]);
+var PATH_REQUIRED_METHODS = /* @__PURE__ */ new Set(["workspace.create"]);
+var MAX_NODES = 2e3;
+function collectAbsolutePaths(value) {
+  const found = [];
+  const stack = [value];
+  let visited = 0;
+  while (stack.length > 0 && visited < MAX_NODES) {
+    const node = stack.pop();
+    visited += 1;
+    if (typeof node === "string") {
+      if (node.length > 0 && isAbsolute2(node)) found.push(node);
+    } else if (Array.isArray(node)) {
+      stack.push(...node);
+    } else if (node !== null && typeof node === "object") {
+      stack.push(...Object.values(node));
+    }
+  }
+  return stack.length === 0 ? found : void 0;
+}
+function isInsideFolder(root, candidate) {
+  const rel = relative(resolve(root), resolve(candidate));
+  return rel === "" || rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute2(rel);
+}
+function payloadWithinFolder(endpoint, payload, folder) {
+  if (!PATH_FENCED_METHODS.has(endpoint)) return true;
+  const paths = collectAbsolutePaths(payload);
+  if (paths === void 0) return false;
+  if (PATH_REQUIRED_METHODS.has(endpoint) && paths.length === 0) return false;
+  return paths.every((path) => isInsideFolder(folder, path));
 }
 
 // src/bridge-list-filter.ts
@@ -1083,8 +1203,8 @@ function createApiBridgeAuth(deps) {
     response.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
     response.end("forbidden");
   };
-  const denyQuiet = async (request, response) => {
-    const rpcId = await readRequestRpcId(request);
+  const denyQuiet = async (request, response, knownRpcId) => {
+    const rpcId = knownRpcId ?? await readRequestRpcId(request);
     if (rpcId === void 0) {
       deny403(response);
       return;
@@ -1137,6 +1257,19 @@ function createApiBridgeAuth(deps) {
       deny403(response);
       return;
     }
+    if (deps.userFolder !== void 0 && PATH_FENCED_METHODS.has(endpoint)) {
+      const body = await bufferRequestBody(request);
+      const envelope = body === void 0 ? void 0 : parseClientRequest(body);
+      if (envelope === void 0 || !payloadWithinFolder(endpoint, envelope.payload, deps.userFolder(user.username))) {
+        if (deps.quietDenials && envelope !== void 0) {
+          await denyQuiet(request, response, envelope.rpcId);
+          return;
+        }
+        deny403(response);
+        return;
+      }
+      replayRequestBody(request, body);
+    }
     if (FILTER_METHODS.has(endpoint) || RECORD_METHODS.has(endpoint)) {
       const owned = FILTER_METHODS.has(endpoint) ? await resolveOwned(deps, user.username) : void 0;
       attachResponseTee(response, {
@@ -1179,6 +1312,38 @@ async function readRequestRpcId(request) {
   } catch {
     return void 0;
   }
+}
+async function bufferRequestBody(request) {
+  try {
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of request) {
+      const piece = typeof chunk === "string" ? Buffer.from(chunk, "utf8") : chunk;
+      size += piece.length;
+      if (size > DENY_BODY_LIMIT_BYTES) return void 0;
+      chunks.push(piece);
+    }
+    return Buffer.concat(chunks);
+  } catch {
+    return void 0;
+  }
+}
+function parseClientRequest(body) {
+  try {
+    const parsed = JSON.parse(body.toString("utf8"));
+    if (parsed.type !== "client-request" || typeof parsed.rpcId !== "string" || parsed.rpcId === "") return void 0;
+    return { rpcId: parsed.rpcId, payload: parsed.payload };
+  } catch {
+    return void 0;
+  }
+}
+function replayRequestBody(request, body) {
+  Object.defineProperty(request, Symbol.asyncIterator, {
+    configurable: true,
+    value: async function* () {
+      if (body.length > 0) yield body;
+    }
+  });
 }
 function attachResponseTee(response, context) {
   const raw = response;
@@ -1300,18 +1465,22 @@ function isJsonBody(headers) {
 }
 
 // src/provision.ts
-import { mkdir as mkdir5 } from "node:fs/promises";
+import { mkdir as mkdir6 } from "node:fs/promises";
 import { join } from "node:path";
 function sandboxSegment(username) {
   return username.split(/[/\\]/).join("_").replace(/\.\.+/g, "_").replace(/^\.+/, "_").replace(/[^A-Za-z0-9._-]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "").slice(0, 96) || "user";
+}
+function userSandboxDir(root, username) {
+  return join(root, sandboxSegment(username));
 }
 var DefaultWorkspaceProvisioner = class {
   constructor(deps) {
     this.deps = deps;
   }
   deps;
+  /** Provisioned `root\0username` keys. */
   done = /* @__PURE__ */ new Set();
-  /** Workspaces already registered but not yet seeded with a session, by username. */
+  /** Workspaces already registered but not yet seeded with a session, by root + username. */
   pending = /* @__PURE__ */ new Map();
   /**
    * Ensure `user` has a default workspace+sandbox. A no-op for admins and
@@ -1323,28 +1492,35 @@ var DefaultWorkspaceProvisioner = class {
    */
   async ensure(user) {
     if (user.isAdmin) return;
+    const root = this.currentRoot();
+    const key = `${root}\0${user.username}`;
     if (this.deps.enabled !== void 0 && !this.deps.enabled()) {
-      this.done.delete(user.username);
+      this.done.delete(key);
       return;
     }
-    if (this.done.has(user.username)) return;
+    if (this.done.has(key)) return;
     const registry = this.deps.workspaceRegistry ?? this.deps.getRegistry?.();
     if (registry === void 0) return;
-    this.done.add(user.username);
+    this.done.add(key);
     try {
-      await this.provision(user.username, registry);
+      await this.provision(user.username, root, key, registry);
     } catch {
-      this.done.delete(user.username);
+      this.done.delete(key);
     }
   }
-  async provision(username, registry) {
-    let workspaceId = this.pending.get(username);
+  /** The sandbox root in effect right now. */
+  currentRoot() {
+    const root = this.deps.workspaceRoot;
+    return typeof root === "function" ? root() : root;
+  }
+  async provision(username, root, key, registry) {
+    let workspaceId = this.pending.get(key);
     if (workspaceId === void 0) {
-      const dir = join(this.deps.workspaceRoot, sandboxSegment(username));
-      await mkdir5(dir, { recursive: true });
+      const dir = userSandboxDir(root, username);
+      await mkdir6(dir, { recursive: true });
       const workspace = await registry.create(dir, this.deps.title ?? username);
       workspaceId = workspace.id;
-      this.pending.set(username, workspaceId);
+      this.pending.set(key, workspaceId);
     }
     const api = this.deps.getApi();
     const create = api?.sessions?.create;
@@ -1356,7 +1532,7 @@ var DefaultWorkspaceProvisioner = class {
       throw new Error("dsh-login: session.create returned no usable sessionId for default-workspace provisioning");
     }
     this.deps.ownership.record(res.result.value.sessionId, username);
-    this.pending.delete(username);
+    this.pending.delete(key);
   }
 };
 
@@ -1535,6 +1711,7 @@ function createSetupHandler(deps) {
 }
 
 // src/admin-api.ts
+import { mkdir as mkdir7 } from "node:fs/promises";
 function requireSession(deps, req) {
   const token = extractSessionToken(req.headers.cookie);
   return token === void 0 ? void 0 : deps.store.verify(token);
@@ -1701,6 +1878,24 @@ function createAdminRoutes(deps) {
     setting.set(body.enabled);
     return sendJson(res, 200, { ok: true, enabled: setting.get() });
   } };
+  const rootSetting = deps.workspaceRootSetting;
+  const rootSettingRoute = rootSetting === void 0 ? void 0 : { kind: "exact", path: "/api/auth/admin/settings/workspace-root", handler: async (req, res) => {
+    if (requireAdmin(deps, req, res) === void 0) return;
+    const describe = () => ({ path: rootSetting.get(), isDefault: rootSetting.isDefault(), defaultPath: rootSetting.fallback });
+    if (req.method === "GET") return sendJson(res, 200, describe());
+    if (req.method !== "POST") return sendJson(res, 405, { error: "method not allowed" });
+    const body = await readJsonObject(req);
+    if (body === null || typeof body.path !== "string") return sendJson(res, 400, { error: "bad request" });
+    const next = body.path.trim() === "" ? rootSetting.fallback : normalizeWorkspaceRoot(body.path);
+    if (next === void 0) return sendJson(res, 400, { error: "path must be absolute" });
+    try {
+      await mkdir7(next, { recursive: true });
+    } catch (err) {
+      return sendJson(res, 400, { error: `cannot create folder: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    rootSetting.set(body.path);
+    return sendJson(res, 200, { ok: true, ...describe() });
+  } };
   const remoteSetting = deps.remoteWebUiSetting;
   const remoteSettingRoute = remoteSetting === void 0 ? void 0 : { kind: "exact", path: "/api/auth/admin/settings/remote-web-ui-compat", handler: async (req, res) => {
     if (requireAdmin(deps, req, res) === void 0) return;
@@ -1716,6 +1911,7 @@ function createAdminRoutes(deps) {
   const routes = [me, capabilitiesRoute, usersRoute, userPassword, userRemove, userDisable];
   if (hostsRoute !== void 0) routes.push(hostsRoute);
   if (settingRoute !== void 0) routes.push(settingRoute);
+  if (rootSettingRoute !== void 0) routes.push(rootSettingRoute);
   if (remoteSettingRoute !== void 0) routes.push(remoteSettingRoute);
   return routes;
 }
@@ -2560,9 +2756,12 @@ function apply(ctx, config) {
   const gatewayConfig = { ...config, distIndex };
   const loginDeps = { users, store, sessionTtl: config.sessionTtl, hosts, autoTrust: config.autoTrustHosts };
   const runtime = config.takeOverWebRuntime ? provideWebRuntime(ctx, config.trustedHosts) : void 0;
-  const workspaceRoot = config.workspaceRoot === "" ? join3(resolveDshHome(), "workspaces") : config.workspaceRoot;
+  const workspaceRootSetting = new WorkspaceRootSetting(
+    join3(dataDir, "settings-workspace-root.json"),
+    config.workspaceRoot === "" ? join3(resolveDshHome(), "workspaces") : config.workspaceRoot
+  );
   const provisioner = new DefaultWorkspaceProvisioner({
-    workspaceRoot,
+    workspaceRoot: () => workspaceRootSetting.get(),
     getApi: createHostSessionApi(ctx),
     ownership,
     getRegistry: () => tryGetService(ctx, "workspaceRegistry"),
@@ -2600,7 +2799,7 @@ function apply(ctx, config) {
     path: "/logout",
     handler: createLogoutRedirectHandler(store)
   }), "dsh-login: /logout");
-  for (const route of createAdminRoutes({ users, store, hosts, defaultWorkspaceSetting, remoteWebUiSetting, remoteWebUiCompat, onRemoteWebUiApply: (enabled) => applyWithRetry(remoteWebUiCompat, enabled, config.remoteWebUiPublicBaseUrl, 3, 50) })) {
+  for (const route of createAdminRoutes({ users, store, hosts, defaultWorkspaceSetting, workspaceRootSetting, remoteWebUiSetting, remoteWebUiCompat, onRemoteWebUiApply: (enabled) => applyWithRetry(remoteWebUiCompat, enabled, config.remoteWebUiPublicBaseUrl, 3, 50) })) {
     ctx.effect(() => ctx.webServer.register(route), `dsh-login: ${route.path}`);
   }
   const bootCompat = applyWithRetry(remoteWebUiCompat, remoteWebUiSetting.get(), config.remoteWebUiPublicBaseUrl);
@@ -2614,7 +2813,10 @@ function apply(ctx, config) {
         ownership,
         quietDenials: config.quietDenials,
         ownedProvider,
-        provisioner
+        provisioner,
+        // Ordinary users may only name folders inside their own
+        // <workspace root>/<username> (path-fence.ts); admins are not fenced.
+        userFolder: (username) => userSandboxDir(workspaceRootSetting.get(), username)
       }), { global: true }),
       "dsh-login: /api bridge auth wall"
     );
@@ -2624,7 +2826,7 @@ function apply(ctx, config) {
   ctx.effect(() => ctx.on("webserver/index-inject", (table) => {
     table.push({ kind: "script", placement: "head", text: sessionBaselineScript });
   }), "dsh-login: capability baseline injection");
-  ctx.effect(() => () => Promise.all([store.flush(), ownership.flush(), hosts.flush(), defaultWorkspaceSetting.flush(), remoteWebUiSetting.flush()]), "dsh-login: sessions + ownership + hosts + settings flush");
+  ctx.effect(() => () => Promise.all([store.flush(), ownership.flush(), hosts.flush(), defaultWorkspaceSetting.flush(), workspaceRootSetting.flush(), remoteWebUiSetting.flush()]), "dsh-login: sessions + ownership + hosts + settings flush");
 }
 export {
   Config,

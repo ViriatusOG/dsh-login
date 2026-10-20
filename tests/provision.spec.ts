@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DefaultWorkspaceProvisioner, sandboxSegment, type ProvisionSessionCreateApi, type WorkspaceRegistryLike } from '../src/provision.ts'
@@ -228,5 +228,24 @@ describe('DefaultWorkspaceProvisioner', () => {
     // Stayed on: not double-provisioned.
     await p.ensure(alice)
     expect(created).toHaveLength(1)
+  })
+
+  it('reads a live root: a changed root provisions the user again inside the new folder', async () => {
+    const base = testRoot()
+    const { registry, created } = fakeRegistry()
+    const { api } = fakeApi()
+    const ownership = new OwnershipIndex(join(base, 'ownership.json'))
+    let root = join(base, 'first')
+    const p = new DefaultWorkspaceProvisioner({ workspaceRoot: () => root, getApi: () => api, ownership, workspaceRegistry: registry })
+
+    await p.ensure(alice)
+    await p.ensure(alice)
+    expect(created.map((w) => w.path)).toEqual([join(base, 'first', 'alice')])
+
+    root = join(base, 'admin-chosen')
+    await p.ensure(alice)
+    await p.ensure(alice)
+    expect(created.map((w) => w.path)).toEqual([join(base, 'first', 'alice'), join(base, 'admin-chosen', 'alice')])
+    expect(statSync(join(base, 'admin-chosen', 'alice')).isDirectory()).toBe(true)
   })
 })

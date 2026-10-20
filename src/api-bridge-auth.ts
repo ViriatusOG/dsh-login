@@ -58,6 +58,7 @@ import { extractSessionToken } from './auth.ts'
 import type { SessionStore } from './session.ts'
 import type { OwnershipIndex } from './ownership.ts'
 import { USER_ALLOWED } from './api-filter.ts'
+import { PATH_FENCED_METHODS, payloadWithinFolder } from './path-fence.ts'
 import {
   FILTER_METHODS,
   RECORD_METHODS,
@@ -95,6 +96,12 @@ export interface ApiBridgeAuthDeps {
   ownedProvider?: OwnedSetProvider
   /** Fired (best-effort) on a non-admin user's first admitted request. */
   provisioner?: BridgeProvisioner
+  /**
+   * The folder an ordinary user is confined to (`<workspace root>/<username>`).
+   * When set, path-bearing requests (see path-fence.ts) naming any folder
+   * outside it are denied. Admins are never fenced.
+   */
+  userFolder?: (username: string) => string
 }
 
 /**
@@ -144,8 +151,8 @@ export function createApiBridgeAuth(deps: ApiBridgeAuthDeps): ApiBridgeAuthListe
    * a valid `server-response` envelope — the same shape a composed Remote
    * guard denial produces, minus the transport failure.
    */
-  const denyQuiet = async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
-    const rpcId = await readRequestRpcId(request)
+  const denyQuiet = async (request: IncomingMessage, response: ServerResponse, knownRpcId?: string): Promise<void> => {
+    const rpcId = knownRpcId ?? await readRequestRpcId(request)
     if (rpcId === undefined) {
       deny403(response)
       return
@@ -210,6 +217,23 @@ export function createApiBridgeAuth(deps: ApiBridgeAuthDeps): ApiBridgeAuthListe
       return
     }
 
+    // Folder fence: an ordinary user may only name folders inside their own.
+    // The wall reads the body to inspect it, then hands the same bytes to the
+    // bridge (which reads the request with `for await`).
+    if (deps.userFolder !== undefined && PATH_FENCED_METHODS.has(endpoint)) {
+      const body = await bufferRequestBody(request)
+      const envelope = body === undefined ? undefined : parseClientRequest(body)
+      if (envelope === undefined || !payloadWithinFolder(endpoint, envelope.payload, deps.userFolder(user.username))) {
+        if (deps.quietDenials && envelope !== undefined) {
+          await denyQuiet(request, response, envelope.rpcId)
+          return
+        }
+        deny403(response)
+        return
+      }
+      replayRequestBody(request, body!)
+    }
+
     // Admitted non-admin POST: observe the response when the method creates a
     // resource (record) or returns a per-user listing (filter).
     if (FILTER_METHODS.has(endpoint) || RECORD_METHODS.has(endpoint)) {
@@ -266,6 +290,47 @@ async function readRequestRpcId(request: IncomingMessage): Promise<string | unde
   } catch {
     return undefined
   }
+}
+
+/** Read the whole request body (bounded); undefined when oversized or unreadable. */
+async function bufferRequestBody(request: IncomingMessage): Promise<Buffer | undefined> {
+  try {
+    const chunks: Buffer[] = []
+    let size = 0
+    for await (const chunk of request) {
+      const piece = typeof chunk === 'string' ? Buffer.from(chunk, 'utf8') : (chunk as Buffer)
+      size += piece.length
+      if (size > DENY_BODY_LIMIT_BYTES) return undefined
+      chunks.push(piece)
+    }
+    return Buffer.concat(chunks)
+  } catch {
+    return undefined
+  }
+}
+
+/** Parse a `client-request` envelope, or undefined when the body is not one. */
+function parseClientRequest(body: Buffer): { rpcId: string; payload: unknown } | undefined {
+  try {
+    const parsed = JSON.parse(body.toString('utf8')) as { type?: unknown; rpcId?: unknown; payload?: unknown }
+    if (parsed.type !== 'client-request' || typeof parsed.rpcId !== 'string' || parsed.rpcId === '') return undefined
+    return { rpcId: parsed.rpcId, payload: parsed.payload }
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Make an already-consumed request yield `body` again to the next
+ * `for await` reader (the bridge), so inspecting the payload is invisible to it.
+ */
+function replayRequestBody(request: IncomingMessage, body: Buffer): void {
+  Object.defineProperty(request, Symbol.asyncIterator, {
+    configurable: true,
+    value: async function* () {
+      if (body.length > 0) yield body
+    },
+  })
 }
 
 interface TeeContext {

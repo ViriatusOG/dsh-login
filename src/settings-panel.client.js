@@ -75,6 +75,9 @@ function (require) {
 .dshlu-fields { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .dshlu-fields > :first-child { flex: 1 1 140px; }
 .dshlu-fields > :nth-child(2) { flex: 1 1 140px; }
+.dshlu-fields--root > :first-child { flex: 1 1 260px; }
+.dshlu-fields--root > :not(:first-child) { flex: 0 0 auto; }
+.dshlu-rootcurrent { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-caption); overflow-wrap: anywhere; }
 .dshlu-check { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-secondary); white-space: nowrap; }
 .dshlu-account { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--dsw-alias-border-l2); }
 .dshlu-account-id { display: inline-flex; align-items: baseline; gap: 8px; min-width: 0; }
@@ -159,6 +162,15 @@ function (require) {
     'ws.on': '已开启',
     'ws.off': '已关闭',
     'ws.toggleFailed': '切换失败',
+    'root.label': '工作空间根目录',
+    'root.intro': '每个普通用户的工作空间会建在此目录下（<根目录>/<用户名>），用户在其中为自己的对话创建文件夹，无需自行选择位置。填写服务器上的绝对路径，目录不存在时会自动创建。更改后用户下次访问时生效，原有工作空间保留不动。',
+    'root.placeholder': '/srv/dsh/workspaces',
+    'root.save': '保存',
+    'root.reset': '恢复默认',
+    'root.current': '当前：',
+    'root.default': '（默认）',
+    'root.saved': '已保存工作空间根目录',
+    'root.saveFailed': '保存失败',
     'rwu.title': '远程访问兼容（remote-web-ui）',
     'rwu.intro': '开启后会把 remote-web-ui 的宿主路由打开（enabled:true）、关闭设备配对门槛（requirePairingForLan:false），并在配置了 remoteWebUiPublicBaseUrl 时一并写入，让通过公网 frp/隧道访问的桌面端（模型对话框、历史、写作区）走 dsh-login 的 /api 通道，由 dsh_session 登录态鉴权。未安装该插件时此项无效果。',
     'rwu.on': '已开启',
@@ -221,6 +233,15 @@ function (require) {
     'ws.on': 'Enabled',
     'ws.off': 'Disabled',
     'ws.toggleFailed': 'Failed to toggle',
+    'root.label': 'Workspace root folder',
+    'root.intro': 'Every non-admin user\'s workspace is created inside this folder (<root>/<username>), where they create folders for their chats without choosing a location themselves. Enter an absolute path on the server; it is created if missing. Changes apply on each user\'s next visit; existing workspaces stay where they are.',
+    'root.placeholder': '/srv/dsh/workspaces',
+    'root.save': 'Save',
+    'root.reset': 'Reset to default',
+    'root.current': 'Current: ',
+    'root.default': ' (default)',
+    'root.saved': 'Workspace root saved',
+    'root.saveFailed': 'Failed to save',
     'rwu.title': 'Remote access compat (remote-web-ui)',
     'rwu.intro': 'When enabled, mounts remote-web-ui\'s host routing (enabled:true) with the device-pairing gate off (requirePairingForLan:false), and writes remoteWebUiPublicBaseUrl when configured, so desktop clients reaching via public frp/tunnel (model dialog, history, composer) ride dsh-login\'s /api channel gated by the dsh_session login cookie. No effect when remote-web-ui is not installed.',
     'rwu.on': 'Enabled',
@@ -353,6 +374,16 @@ function (require) {
     var wsBusy = wsBusyState[0]
     var setWsBusy = wsBusyState[1]
 
+    var rootState = useState({ status: 'loading', path: '', isDefault: true, error: '' })
+    var root = rootState[0]
+    var setRoot = rootState[1]
+    var rootInputState = useState('')
+    var rootInput = rootInputState[0]
+    var setRootInput = rootInputState[1]
+    var rootBusyState = useState(false)
+    var rootBusy = rootBusyState[0]
+    var setRootBusy = rootBusyState[1]
+
     var rwuState = useState({ status: 'loading', enabled: true, error: '' })
     var rwu = rwuState[0]
     var setRwu = rwuState[1]
@@ -406,6 +437,31 @@ function (require) {
         setNotice({ kind: 'error', text: t('ws.toggleFailed') + ': ' + (err instanceof Error ? err.message : String(err)) })
       }
       setWsBusy(false)
+    }
+
+    var applyRootData = function (data) {
+      var path = data !== null && typeof data.path === 'string' ? data.path : ''
+      setRoot({ status: 'ready', path: path, isDefault: data === null || data.isDefault !== false, error: '' })
+      setRootInput(path)
+    }
+    var refreshRoot = useCallback(async function () {
+      try {
+        applyRootData(await api('/api/auth/admin/settings/workspace-root', 'GET'))
+      } catch (err) {
+        setRoot({ status: 'error', path: '', isDefault: true, error: err instanceof Error ? err.message : String(err) })
+      }
+    }, [])
+    useEffect(function () { void refreshRoot() }, [refreshRoot])
+
+    var saveRoot = async function (path) {
+      setRootBusy(true)
+      try {
+        applyRootData(await api('/api/auth/admin/settings/workspace-root', 'POST', { path: path }))
+        setNotice({ kind: 'success', text: t('root.saved') })
+      } catch (err) {
+        setNotice({ kind: 'error', text: t('root.saveFailed') + ': ' + (err instanceof Error ? err.message : String(err)) })
+      }
+      setRootBusy(false)
     }
 
     var refreshRwu = useCallback(async function () {
@@ -604,7 +660,23 @@ function (require) {
             onChange: function (e) { void toggleWs(e.target.checked) },
           }),
           h('span', { className: 'dshlu-switch-track' }),
-          h('span', { className: 'dshlu-switch-knob' }))))
+          h('span', { className: 'dshlu-switch-knob' }))),
+      wsEnabled
+        ? h('div', { className: 'dshlu-switchtext' },
+            h('div', { className: 'dshlu-switchlabel' }, t('root.label')),
+            h('p', { className: 'dshlu-switchdesc' }, t('root.intro')),
+            root.status === 'error'
+              ? h('p', { className: 'dshlu-rootcurrent' }, t('root.saveFailed') + ': ' + root.error)
+              : h('p', { className: 'dshlu-rootcurrent' }, t('root.current'), h('code', null, root.status === 'ready' ? root.path : '…'), root.isDefault ? t('root.default') : null),
+            h('form', { className: 'dshlu-fields dshlu-fields--root', onSubmit: function (e) {
+              e.preventDefault()
+              if (rootInput.trim().length === 0) return
+              void saveRoot(rootInput)
+            } },
+              h(Input, { placeholder: t('root.placeholder'), value: rootInput, autoComplete: 'off', spellCheck: false, onChange: function (e) { setRootInput(e.target.value) } }),
+              h(Button, { variant: 'primary', size: 'sm', type: 'submit', disabled: rootBusy || root.status !== 'ready' || rootInput.trim().length === 0 || rootInput === root.path }, t('root.save')),
+              root.isDefault ? null : h(Button, { variant: 'ghost', size: 'sm', type: 'button', disabled: rootBusy, onClick: function () { void saveRoot('') } }, t('root.reset'))))
+        : null)
 
     var rwuEnabled = rwu.status === 'ready' ? rwu.enabled : true
     var rwuCard = h('div', { className: 'dshlu-card' },

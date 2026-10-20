@@ -17,7 +17,7 @@ The DSH web UI has no login: it assumes one person on localhost. Once it is reac
 - **Sign-in wall:** pages, assets, the API and WebSockets all need a valid session. Visitors without one land on `/login`.
 - **Accounts:** the first visit creates the administrator. The admin adds everyone else under Settings → Users.
 - **Separate conversations:** ordinary users see only their own sessions, subagents and workspace. Credentials, plugins, presets and host settings are admin only.
-- **Own workspace per user:** each ordinary user gets a private workspace folder on first visit (`<DSH_HOME>/workspaces/<username>`).
+- **A folder per user, chosen by the admin:** each ordinary user gets their own folder inside a root the admin picks, and can't create workspaces or sessions outside it. See [User folders](#user-folders).
 - **User management:** admins see last sign-in and online status, and can reset passwords, disable or remove users. Each change signs that user out at once.
 - **Sessions survive restarts:** the cookie is HttpOnly, SameSite=Strict and lasts 7 days. Passwords are stored as scrypt hashes.
 
@@ -39,12 +39,27 @@ dsh plugin --profile web remove @islibaodong/dsh-login
 
 Removing the plugin keeps the accounts (they live in DSH's credential store), so adding it again brings them back.
 
+## User folders
+
+As admin, open **Settings → Users** and find **Default user workspace**:
+
+1. Leave the switch on. Each ordinary user then gets a workspace the first time they open the app, with a starter chat in it.
+2. Under **Workspace root folder**, enter an absolute path on the server (for example `/srv/dsh/workspaces`) and press **Save**. The folder is created if it doesn't exist.
+
+Each user's workspace is `<root folder>/<username>`. Users create folders for their chats inside it and never pick a location themselves:
+
+- Requests from ordinary users that name a folder outside their own (creating a workspace, or starting a chat in another folder) are refused. Admins are not restricted.
+- Changing the root folder applies on each user's next visit: they get a new workspace in the new folder. Workspaces in the old folder stay where they are.
+- **Reset to default** goes back to `<DSH_HOME>/workspaces`, or to the `workspaceRoot` value in the plugin config if you set one.
+
+This controls where workspaces are created and which ones users see. It is not an OS-level sandbox: a user's agent and terminal still run as the server's account (see below).
+
 ## Good to know
 
 - **Everyone runs on one machine account.** Accounts keep conversations apart, but every user's agent runs commands on the server as the user DSH runs as. Only give accounts to people you trust with that.
 - **Use HTTPS on the internet.** Over plain HTTP the session cookie is sent in the clear. Put a reverse proxy with TLS (nginx, Caddy) in front for anything beyond a home LAN.
 - **Tunnels and other hosts work.** A host you sign in through once (frp, a tunnel, a LAN address) is trusted from then on. The list is in Settings → Users → Allowed hosts.
-- **Ordinary users can't pick host folders.** That's on purpose, and their own workspace is created for them instead.
+- **Ordinary users can't pick host folders.** That's on purpose. Their workspace is created for them inside the admin's root folder.
 
 ## Where data lives
 
@@ -53,7 +68,8 @@ Removing the plugin keeps the accounts (they live in DSH's credential store), so
 | Accounts (scrypt hashes) | DSH credentials, ref `DSH_LOGIN_PASSWORD_USERS` |
 | Sign-in sessions | `<DSH_HOME>/.dsh-login/sessions.json` |
 | Who owns which session | `<DSH_HOME>/.dsh-login/ownership.json` |
-| Trusted hosts, settings | `<DSH_HOME>/.dsh-login/*.json` |
+| Trusted hosts, settings (including the workspace root folder) | `<DSH_HOME>/.dsh-login/*.json` |
+| User folders | `<root folder>/<username>`, default `<DSH_HOME>/workspaces/<username>` |
 
 ## Keeping up with upstream
 

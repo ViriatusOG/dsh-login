@@ -467,3 +467,54 @@ describe('dsh-login /api bridge auth wall (full composition)', () => {
     expect((ownership as { lookup(id: string): string | undefined }).lookup('anything')).toBeUndefined()
   })
 })
+
+describe('createApiBridgeAuth folder fence', () => {
+  const folder = '/srv/dsh/workspaces/alice'
+  const envelope = (method: string, payload: unknown) => JSON.stringify({ type: 'client-request', rpcId: 'rpc-f', method, payload })
+
+  async function call(isAdmin: boolean, method: string, payload: unknown) {
+    const store = new SessionStore(3600)
+    const { token } = store.create('alice', isAdmin)
+    const wall = createApiBridgeAuth(unitDeps(store, { userFolder: () => folder }))
+    let forwarded: string | undefined
+    const req = fakeRequest(`dsh_session=${token}`, { method: 'POST', url: `/api/${method}`, body: envelope(method, payload) })
+    const res = fakeTeeResponse()
+    await wall(req as never, res as never, async () => {
+      const parts: string[] = []
+      for await (const chunk of req as unknown as AsyncIterable<unknown>) parts.push(String(chunk))
+      forwarded = parts.join('')
+      res.end(JSON.stringify({ type: 'server-response', rpcId: 'rpc-f', result: { ok: true, value: {} } }))
+    })
+    return { forwarded, res }
+  }
+
+  it('lets an ordinary user create a workspace inside their folder, replaying the same body to the bridge', async () => {
+    const payload = { path: `${folder}/project-a`, title: 'A' }
+    const { forwarded } = await call(false, 'workspace.create', payload)
+    expect(forwarded).toBe(envelope('workspace.create', payload))
+  })
+
+  it('denies an ordinary user a workspace outside their folder (quiet forbidden envelope)', async () => {
+    for (const path of ['/etc', '/srv/dsh/workspaces/bob', `${folder}/../bob`, '/srv/dsh/workspaces/alice-evil']) {
+      const { forwarded, res } = await call(false, 'workspace.create', { path })
+      expect(forwarded).toBeUndefined()
+      const body = JSON.parse(res.chunks.join('')) as { rpcId?: string; result?: { ok?: boolean; error?: { code?: string } } }
+      expect(body.rpcId).toBe('rpc-f')
+      expect(body.result?.error?.code).toBe('forbidden')
+    }
+  })
+
+  it('denies a workspace.create that names no absolute folder', async () => {
+    expect((await call(false, 'workspace.create', { path: 'relative/dir' })).forwarded).toBeUndefined()
+  })
+
+  it('checks session.create cwd but allows the plain workspaceId shape', async () => {
+    expect((await call(false, 'session.create', { cwd: '/home' })).forwarded).toBeUndefined()
+    expect((await call(false, 'session.create', { workspaceId: 'ws-1' })).forwarded).toBeDefined()
+    expect((await call(false, 'session.create', { cwd: folder })).forwarded).toBeDefined()
+  })
+
+  it('never fences an admin', async () => {
+    expect((await call(true, 'workspace.create', { path: '/etc' })).forwarded).toBeDefined()
+  })
+})

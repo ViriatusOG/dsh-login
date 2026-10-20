@@ -38,7 +38,9 @@ export interface Config {
    * workspaces holding that user's sessions). */
   defaultWorkspace: boolean
   /** Filesystem root that holds each user's default-workspace sandbox. Empty
-   * resolves to `<dshHome>/workspaces`. Only used when defaultWorkspace is on. */
+   * resolves to `<dshHome>/workspaces`. Only used when defaultWorkspace is on.
+   * This is the fallback: an admin can pick a different folder at runtime
+   * from 设置-用户管理 (persisted separately, see src/workspace-root-setting.ts). */
   workspaceRoot: string
   /**
    * Compatibility with `@linxin666/dsh-remote-web-ui` (default true). When on,
