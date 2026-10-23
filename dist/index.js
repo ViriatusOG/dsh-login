@@ -1916,7 +1916,94 @@ function createAdminRoutes(deps) {
   return routes;
 }
 
+// package.json
+var package_default = {
+  name: "@islibaodong/dsh-login",
+  description: "Multi-user authentication gateway plugin for the DSH Web GUI, with per-role whole-UI gating",
+  version: "0.3.5-en.3",
+  type: "module",
+  main: "dist/index.js",
+  exports: {
+    ".": {
+      default: "./dist/index.js"
+    },
+    "./client": "./dist/client.js",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  scripts: {
+    test: "vitest run",
+    "test:watch": "vitest",
+    "build:host": "node scripts/build-host.mjs",
+    "build:client": "node scripts/build-client.mjs",
+    build: "npm run build:host && npm run build:client",
+    "verify:imports": "node --import tsx/esm scripts/verify-imports.mjs"
+  },
+  engines: {
+    node: "^22.19.0 || >=24.0.0"
+  },
+  license: "MIT",
+  dsh: {
+    bundle: {
+      patch: "./cordis.patch.yml"
+    },
+    client: {
+      inject: [
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-locale"
+      ],
+      platform: "web",
+      immediately: true
+    }
+  },
+  peerDependencies: {
+    "@deepseek-ai/cordis": "^4.0.1-rc.1 || ~4.0.5-alpha.1",
+    "@deepseek-ai/dsh-client-connection": ">=0.1.5-alpha.1 <0.2.0-0 || >=0.1.6-alpha.1 <0.2.0-0 || >=0.1.7-alpha.2 <0.2.0-0 || >=0.2.0-rc.2 <0.3.0-0 || >=0.2.1-alpha.1 <0.3.0-0",
+    "@deepseek-ai/dsh-credentials": ">=0.1.5-alpha.1 <0.2.0-0 || >=0.1.6-alpha.1 <0.2.0-0 || >=0.1.7-alpha.2 <0.2.0-0 || >=0.2.0-rc.2 <0.3.0-0 || >=0.2.1-alpha.1 <0.3.0-0",
+    "@deepseek-ai/dsh-host-frontend-static": ">=0.1.5-alpha.1 <0.2.0-0 || >=0.1.6-alpha.1 <0.2.0-0 || >=0.1.7-alpha.2 <0.2.0-0 || >=0.2.0-rc.2 <0.3.0-0 || >=0.2.1-alpha.1 <0.3.0-0",
+    "@deepseek-ai/dsh-host-webserver": ">=0.1.5-alpha.1 <0.2.0-0 || >=0.1.6-alpha.1 <0.2.0-0 || >=0.1.7-alpha.2 <0.2.0-0 || >=0.2.0-rc.2 <0.3.0-0 || >=0.2.1-alpha.1 <0.3.0-0",
+    "@deepseek-ai/dsh-settings": ">=0.1.5-alpha.1 <0.2.0-0 || >=0.1.6-alpha.1 <0.2.0-0 || >=0.1.7-alpha.2 <0.2.0-0 || >=0.2.0-rc.2 <0.3.0-0 || >=0.2.1-alpha.1 <0.3.0-0",
+    "@deepseek-ai/dsh-web-frontend": ">=0.1.5-alpha.1 <0.2.0-0 || >=0.1.6-alpha.1 <0.2.0-0 || >=0.1.7-alpha.2 <0.2.0-0 || >=0.2.0-rc.2 <0.3.0-0 || >=0.2.1-alpha.1 <0.3.0-0",
+    "@deepseek-ai/schemastery": "^3.18.1-rc.1 || ~3.18.5-alpha.1"
+  },
+  devDependencies: {
+    "@deepseek-ai/cordis": "~4.0.5",
+    "@deepseek-ai/cordis-plugin-include": "~1.0.10",
+    "@deepseek-ai/cordis-plugin-loader": "~1.0.6",
+    "@deepseek-ai/dsh-brand": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-client-connection": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-client-modules": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-credentials": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-host-frontend-static": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-host-webserver": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-scope": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-session": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-settings": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-web-frontend": "^0.2.1-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.5",
+    "@types/node": "^22.20.1",
+    esbuild: "^0.28.2",
+    "esbuild-wasm": "^0.28.2",
+    tsx: "^4.23.12",
+    vitest: "^2.1.9"
+  },
+  repository: {
+    type: "git",
+    url: "git+https://github.com/ViriatusOG/dsh-login.git"
+  },
+  files: [
+    "src",
+    "dist",
+    "cordis.patch.yml",
+    "screenshots.json",
+    "LICENSE",
+    "README.md",
+    "README.zh.md"
+  ]
+};
+
 // src/login-page.ts
+var VERSION = `v${package_default.version}`;
 var BOARD_JS = `
     (function () {
       var reduce = window.matchMedia
@@ -2497,9 +2584,11 @@ var CHEVRON_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>`;
 var FEATURES = [
   ["Sign-in wall", "Pages, the API and live updates all need a session."],
-  ["Separate sessions", "Users see only their own chats and workspace."],
+  ["Separate sessions", "Users see only their own chats and subagents."],
+  ["A folder per user", "Each user works in their own folder, inside a root the admin picks."],
   ["User management", "Admins manage accounts in Settings \u2192 Users."],
-  ["Remote friendly", "Works over frp, tunnels or the LAN."]
+  ["Remote friendly", "Works over frp, tunnels or the LAN."],
+  ["Survives restarts", "Sign-ins last 7 days and outlive a DSH restart."]
 ];
 function renderPage(opts) {
   const grid = FEATURES.map(
@@ -2537,7 +2626,7 @@ function renderPage(opts) {
           ${grid}
           </ul>
         </div>
-        <div class="loaded"><i class="dot"></i>dsh-login loaded</div>
+        <div class="loaded"><i class="dot"></i>dsh-login loaded \xB7 ${VERSION}</div>
       </div>
     </section>
     <section class="pane pane--light">
@@ -2571,7 +2660,7 @@ function renderLoginPage() {
     heading: "Sign in",
     subtitle: "Each user has their own account and sessions.",
     tagline: "Multi-user sign-in for the DSH web UI.",
-    pill: "dsh-login",
+    pill: `dsh-login ${VERSION}`,
     help: "Forgot your password? Ask an admin to reset it.",
     fields: `
           <div class="field">
@@ -2657,7 +2746,7 @@ function renderSetupPage() {
     heading: "Create admin account",
     subtitle: "This first account manages everyone else in Settings \u2192 Users.",
     tagline: "No accounts exist yet. Create the first one.",
-    pill: "First run",
+    pill: `First run \xB7 ${VERSION}`,
     fields: `
           <div class="field">
             <label for="username">Username</label>
