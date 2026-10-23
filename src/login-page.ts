@@ -11,6 +11,11 @@
  * not here.
  */
 
+import pkg from '../package.json' with { type: 'json' }
+
+/** Shown in the loaded badge and the phone pill so admins can tell builds apart. */
+const VERSION = `v${pkg.version}`
+
 /**
  * Plugin board ambience: tiles are laid out inside the dark pane by inline
  * JS (snapped to the grid).
@@ -603,12 +608,14 @@ const CHEVRON_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>`
 
-/** The four features, shared by the desktop grid and the phone disclosure. */
+/** The features, shared by the desktop grid and the phone disclosure. */
 const FEATURES: Array<[string, string]> = [
   ['Sign-in wall', 'Pages, the API and live updates all need a session.'],
-  ['Separate sessions', 'Users see only their own chats and workspace.'],
+  ['Separate sessions', 'Users see only their own chats and subagents.'],
+  ['A folder per user', 'Each user works in their own folder, inside a root the admin picks.'],
   ['User management', 'Admins manage accounts in Settings → Users.'],
   ['Remote friendly', 'Works over frp, tunnels or the LAN.'],
+  ['Survives restarts', 'Sign-ins last 7 days and outlive a DSH restart.'],
 ]
 
 interface PageOptions {
@@ -662,7 +669,7 @@ function renderPage(opts: PageOptions): string {
           ${grid}
           </ul>
         </div>
-        <div class="loaded"><i class="dot"></i>dsh-login loaded</div>
+        <div class="loaded"><i class="dot"></i>dsh-login loaded · ${VERSION}</div>
       </div>
     </section>
     <section class="pane pane--light">
@@ -699,7 +706,7 @@ export function renderLoginPage(): string {
     heading: 'Sign in',
     subtitle: 'Each user has their own account and sessions.',
     tagline: 'Multi-user sign-in for the DSH web UI.',
-    pill: 'dsh-login',
+    pill: `dsh-login ${VERSION}`,
     help: 'Forgot your password? Ask an admin to reset it.',
     fields: `
           <div class="field">
@@ -787,7 +794,7 @@ export function renderSetupPage(): string {
     heading: 'Create admin account',
     subtitle: 'This first account manages everyone else in Settings → Users.',
     tagline: 'No accounts exist yet. Create the first one.',
-    pill: 'First run',
+    pill: `First run · ${VERSION}`,
     fields: `
           <div class="field">
             <label for="username">Username</label>
