@@ -17,6 +17,7 @@ import { BooleanSetting } from './boolean-setting.ts'
 import { applyWithRetry, RemoteWebUiCompat, type RemoteWebUiCompatDeps } from './remote-web-ui-compat.ts'
 import { createGatewayHandler } from './gateway.ts'
 import { createApiBridgeAuth } from './api-bridge-auth.ts'
+import { WIRE_SURFACE_DSH_VERSION } from './api-filter.ts'
 import { DefaultWorkspaceProvisioner, userSandboxDir, type WorkspaceRegistryLike } from './provision.ts'
 import { createHostSessionApi, createHostSessionSource, tryGetService } from './host-session-access.ts'
 import { probeOwnedSessionIds } from './bridge-list-filter.ts'
@@ -198,6 +199,19 @@ export function apply(ctx: Context, config: Config): void {
   // listener firing regardless of any context filter at the emit site; on
   // DSH < 0.1.6-alpha.2 the event never fires and this is a harmless no-op.
   if (config.apiBridgeAuth) {
+    // Diagnostics for a stale allow-list: a denial of a method this build does
+    // not know about means upstream renamed something (the issue #4 failure
+    // mode). Warn once per method so a rename is visible in the host log
+    // instead of only in the user's browser console.
+    const reported = new Set<string>()
+    const reportUnknownMethod = (method: string, username: string): void => {
+      if (reported.has(method)) return
+      reported.add(method)
+      const message = `dsh-login: /api/${method} was denied for '${username}' but is not part of the DSH ${WIRE_SURFACE_DSH_VERSION} wire surface this build knows — upstream may have renamed it; refresh src/api-filter.ts (node scripts/dump-wire-surface.mjs)`
+      const logger = (ctx as unknown as { logger?: { warn?: (msg: string) => void } }).logger
+      if (typeof logger?.warn === 'function') logger.warn(message)
+      else console.warn(message)
+    }
     // Owned-set resolution for response filtering: best-effort probe over the
     // sidecar closure plus the caller's live session list. A failed probe
     // degrades to sidecar-only filtering (or none when the sidecar is empty).
@@ -212,6 +226,7 @@ export function apply(ctx: Context, config: Config): void {
         // Ordinary users may only name folders inside their own
         // <workspace root>/<username> (path-fence.ts); admins are not fenced.
         userFolder: (username) => userSandboxDir(workspaceRootSetting.get(), username),
+        onUnknownMethod: reportUnknownMethod,
       }), { global: true }),
       'dsh-login: /api bridge auth wall',
     )
