@@ -1,5 +1,664 @@
 # Memory Changelog
 
+## 2026-11-08 (scheduled watch) — no new DSH release; 0.3.11 stays current, no adaptation, no publish
+- Scheduled watch (cron `0 12 * * *` Asia/Shanghai; trigger 2026-11-08T04:00:00.016Z / 12:00 +0800).
+  Detection (all three channels):
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness`: no new objects. Newest tag still `dsh-v0.2.2-rc.1` (no `dsh-v0.2.2` stable tag, no 0.2.3/0.3 line). origin/master tip = `fcc0ad4621` (2026-11-04 16:40 +0800, PR #7873) — unchanged since the 11-04 state; `rev-list --count dsh-v0.2.2-rc.1..origin/master` = **811** — unreleased backlog on master, no release cut. (Local checkout branch `dev` == `origin/master` == `fcc0ad4621`; there is no remote `dev` branch.)
+  - npm dist-tags: `@deepseek-ai/dsh` `latest`/`next` = **0.2.2-rc.1**, `alpha` = 0.2.2-alpha.3 — unchanged from the 11-06 state (last move was 11-06: `latest` promoted onto rc.1). `dsh-web-frontend` dist-tags: `latest` = 0.0.1-rc.5 (legacy placeholder), `next` = 0.2.2-rc.1, `alpha` = 0.2.2-alpha.3. `@islibaodong/dsh-login` `latest` = 0.3.11 (nothing newer). No publish beyond rc.1 anywhere.
+  - Multi-user grep at the master tip (`multi.?user|multiuser|role.?based|\brbac\b` over `packages/ apps/`): still exactly **1 hit** — `packages/api/remote-access/README.md`. `__DSH_BOOT__` lever intact at the master tip (`packages/client/modules/src/index.ts:635`). No native accounts; dsh-login remains the account layer; uiRoleGate unaffected. Evaluation stays closed.
+- **Pre-release drift radar (new, recorded for the NEXT re-pin — unreleased WIP, no action taken):** the wire surface on origin/master has drifted 204 → **210** vs the rc.1-pinned snapshot (probe: `enumerateWireSurface('E:/code/deepseek-harness')` at master tip `fcc0ad4621` vs `tests/fixtures/wire-surface.json`). Added: `agentTeams.setEnabled`, `forgePanel.diffBases`, `mcpManager.probe`, `mcpManager.restart`, `mcpManager.watch`, `subagents.interruptByUser`, `web.listProviders`; removed: `subagents.interruptByParent`. Driver commits: the named-subagents/team line (PR #7697 merge `a2f3a18580`, `30bf5733d6` "refactor(mcp-manager): publish the manager as ctx.mcpManager", `ff563d07e0` "feat(subagent): name subagents in their creator catalog") and the web provider-listing rework (`WebRuntime extends TypertRemoteService`, `@Remote listProviders()` — `packages/web/web/src/index.ts`). Also on the WIP tree: `packages/client/modules/src/client/entries.ts` initial-roster creation now catches per-entry create rejections (`await this.create(loader, id).catch(...)` — one bad module row no longer aborts startup); `packages/client/locale` grew 2 keys per locale. None of this affects the rc.1-released line; when the next DSH tag lands, re-pin: buckets must absorb the 7 additions (likely classification: `web.listProviders` user, `mcpManager.*` admin-or-user per the manager's operator status, `subagents.interruptByUser` user, `agentTeams.setEnabled` user-or-admin, `forgePanel.diffBases` user like the rest of forgePanel) and drop `subagents.interruptByParent`.
+- **Conclusion: no new DSH version (0.2.2-rc.1 remains the newest release, already adapted + released as 0.3.11) → no adaptation needed.** dsh-login 0.3.11 stays current; peer ranges already cover the latest runtime. No code changes → no version bump, no release (release only when a new DSH version requires adaptation).
+- Verification: clean tree `npm test` = **21 files / 269 tests green** (2026-11-08 12:06 +0800, 7.10 s) on commit `d43d339` (master == origin/master == tag `v0.3.11`); `npm run verify:imports` exit 0.
+- Docs updated (README.md / README.zh.md new watch paragraph + multi-user/RBAC and per-identity-UI-gate re-verification dates). Changelog entry committed + pushed per the release-watch convention.
+
+## 2026-11-06 (scheduled watch) — no new DSH release; 0.3.11 stays current, no adaptation, no publish
+- Scheduled watch (cron `0 12 * * *` Asia/Shanghai; trigger 2026-11-06T04:00:00.005Z / 12:00 +0800).
+  Detection (all three channels):
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness`: no new objects. Newest tag still `dsh-v0.2.2-rc.1` (no `dsh-v0.2.2` stable tag, no 0.2.3/0.3 line). origin/master tip = `fcc0ad4621` (2026-11-04 16:40 +0800, PR #7873) — unchanged since the 11-04 state; `rev-list --count dsh-v0.2.2-rc.1..origin/master` = **811** — unreleased backlog on master (long-running branch merges), no release cut. Local checkout `dev` == `origin/master` == `fcc0ad4621`, dirty only CLAUDE.md + untracked agent dirs (known noise).
+  - npm dist-tags: `@deepseek-ai/dsh` `latest`/`next` = **0.2.2-rc.1**, `alpha` = 0.2.2-alpha.3 — `latest` has now ALSO moved onto rc.1 (the stable channel caught up with `next`; on 11-05 only `next` had moved). `dsh-host-webserver`/`dsh-web-frontend`: `next` = 0.2.2-rc.1, `alpha` = 0.2.2-alpha.3. `@islibaodong/dsh-login` `latest` = 0.3.11 (the 11-05 release; nothing newer). No publish beyond rc.1 anywhere.
+  - Multi-user grep at the rc.1 tag AND the master tip (`multi.?user|multiuser|role.?based|\brbac\b` over `packages/ apps/`): still exactly **1 hit** — `packages/api/remote-access/README.md`. `__DSH_BOOT__` lever intact at the master tip (`packages/client/modules/src/index.ts:635`). No native accounts; dsh-login remains the account layer; uiRoleGate unaffected. Evaluation stays closed.
+- **Conclusion: no new DSH version (0.2.2-rc.1 remains the newest release, already adapted + released as 0.3.11 yesterday) → no adaptation needed.** dsh-login 0.3.11 stays current; peer ranges already cover the latest runtime. No code changes → no version bump, no release (release only when a new DSH version requires adaptation).
+- Verification: clean tree `npm test` = **21 files / 269 tests green** (2026-11-06 12:04 +0800, 5.83 s) on commit `9350e05` (master == origin/master == tag `v0.3.11`).
+- Docs updated (README.md / README.zh.md new watch paragraph + multi-user/RBAC and per-identity-UI-gate re-verification dates). Changelog entry committed + pushed per the release-watch convention.
+
+## 2026-11-05 (scheduled watch) — DSH 0.2.2-rc.1 released; adapted + released as **0.3.11**
+- Scheduled watch (cron `0 12 * * *` Asia/Shanghai; trigger 2026-11-05T04:00:01.859Z / 12:00 +0800).
+  Detection: every peer package's npm `next` dist-tag moved to **0.2.2-rc.1** (published from
+  tag commit `2f97f60455` "release(dsh): 0.2.2-rc.1", 2026-11-04 15:50 +0800); `alpha` stays
+  0.2.2-alpha.3. Git tag `dsh-v0.2.2-rc.1` → `66491b05e3` (merge PR #7870); range
+  `dsh-v0.2.2-alpha.3..dsh-v0.2.2-rc.1` = **2 content commits**: `60d811de43` "release(vendor):
+  cordis 4.1.0, cosmokit 1.9.0, group 1.1.0, hmr 1.1.0, include 1.1.0, loader 1.1.0,
+  logger-console 1.1.0, schemastery 3.19.0, timer 1.2.0" (vendor **stable** re-issue) + the
+  version-bump release commit. **387 files changed, all package.json — zero source changes**,
+  so the 204-method wire registry is provably identical → no re-dump (only version-pin moves).
+- Files: `package.json` (v0.3.11; devDeps → `^0.2.2-rc.1` + vendor stable cordis `~4.1.0` /
+  schemastery `~3.19.0` / include `~1.1.0` / loader `~1.1.0`; **peers +=** cordis `|| ~4.1.0`,
+  schemastery `|| ~3.19.0` — the old `^4.0.1-rc.1`/`^3.18.1-rc.1` branches cannot admit the
+  new `[4,1,0]`/`[3,19,0]` tuples under npm's install-time prerelease rule; DSH-package peer
+  branches unchanged), `src/api-filter.ts` (`WIRE_SURFACE_DSH_VERSION = '0.2.2-rc.1'` + header
+  note; method lists untouched, buckets stay 124/79/1), `tests/fixtures/wire-surface.json`
+  (`dshVersion` → 0.2.2-rc.1, methods unchanged), `dist/*` rebuilt (`client.js` byte-identical
+  37134 chars, SHA-256 verified; `index.js` stamp-only), `docs/adapt-dsh-0.2.2-rc.1.md` (new),
+  README.md / README.zh.md (banner + 11-05 watch + history + tracking/eval dates).
+- **Install trap (new lesson):** incremental `npm install` on the stale alpha.3 lockfile tree
+  ERESOLVE-wedged (old `cordis-plugin-group` peer from the alpha.3 `dsh-app-boot` chain) —
+  fixed by **clean install** (delete `node_modules` + `package-lock.json`; 111 packages in 10s,
+  all resolved at rc.1/stable line). See gotchas.md.
+- Verification: `npm test` = 21 files / 269 tests green (incl. strict live cross-check
+  204==204); `npm run build` exit 0; **`verify:imports` exit 0 — the tsx strip-only failure
+  recorded since 0.3.9 no longer reproduces** (env issue resolved, drop it from future
+  verification tables).
+- Multi-user grep at the rc.1 tag: still exactly **1 hit** —
+  `packages/api/remote-access/README.md`. `__DSH_BOOT__` lever intact
+  (`packages/client/modules/src/index.ts:635`). No native accounts; dsh-login remains the
+  account layer; uiRoleGate unaffected. Release: commit + tag `v0.3.11` + push + npm publish
+  (see git/npm for the record).
+
+## 2026-11-04 (scheduled watch) — DSH 0.2.2-alpha.3 released; adapted + released as **0.3.10**
+- Scheduled watch (cron `0 12 * * *` Asia/Shanghai; trigger 2026-11-04T04:00:00Z / 12:00 +0800).
+  Detection: `dsh-v0.2.2-alpha.3` tag → `05b1cae8db` ("release(vendor): cordis 4.0.6-alpha.2,
+  cosmokit 1.8.7-alpha.2, group 1.0.6-alpha.2, hmr 1.0.21-alpha.2, include 1.0.11-alpha.2,
+  loader 1.0.7-alpha.2, logger-console 1.0.6-alpha.2, schemastery 3.18.6-alpha.2,
+  timer 1.1.8-alpha.2"), tagged 2026-11-03 14:19:06 +0800; **111 commits** past
+  `ce7073d512`; npm `alpha` = 0.2.2-alpha.3 (published 2026-11-03T07:48:26Z), `latest`/`next`
+  stay 0.2.1-rc.5; all ten peer packages verified published at 0.2.2-alpha.3.
+- Adapter surface: `packages/api` sees **only** the session-controller projection rework
+  (~130 src lines: `ApiSessionList` keeps a `ProjectionHandle<SessionListMetadata>`;
+  `cachedSnapshot` → `snapshot`; **`SessionProjectionUpdate` wire shape changed**
+  `{sessionId, key, value, seq}` → `{sessionId, seq, changes: {key, val}[]}` — one update
+  per committed event). `@Remote` method names unchanged → method walls untouched; frame
+  payload rides inside session-scoped streams already gated by ownership. Client packages
+  (`connection`/`modules`/`ui-slots`) and host (`webserver`/`frontend-static`): package.json
+  bumps only → `dist/client.js` banner-only re-stamp (byte-identical, 37134 chars).
+- **Wire surface re-pinned 199 → 204** (the 11-02 dev-tree observation released):
+  `schedule.update`/`schedule.delete` folded into `schedule.edit`; + `schedule.create`/
+  `deliveryLimits`/`run`/`view` + `forgePanel.changeRequestChecks`/`submitReview`, all
+  classified **user** (schedule CRUD = caller's own surface, same trust shape as the
+  already-admitted schedule reads — shared host schedule domain, no per-task ownership
+  upstream; forge pair session-scoped via `this.bound(session, url)`, `submitReview` =
+  same trust shape as `merge`/`markReady`). Buckets **124 / 79 / 1**.
+- Files: `package.json` (v0.3.10, devDeps → alpha.3 + vendor alphas, **peers unchanged** —
+  `>=0.2.2-alpha.2 <0.3.0-0` admits alpha.3 via same-tuple rule), `src/api-filter.ts`,
+  `tests/fixtures/wire-surface.json` (re-dumped from a **built** alpha.3 worktree
+  `E:\code\deepseek-harness-wt-022a3` @ `05b1cae8db`: `pnpm install` + `pnpm run typecheck`,
+  5 gates pass in 191.20s, 36 typert files), `tests/wire-surface.spec.ts` (pins 124/79/1,
+  no-checkout expects 204), `dist/*` rebuilt, `docs/adapt-dsh-0.2.2-alpha.3.md` (new),
+  README.md / README.zh.md (banner + 11-04 watch + history + tracking/eval dates).
+- Verification: `npm install` clean (30 packages); `npm test` = 21 files / 269 tests green;
+  strict live cross-check 204 == 204 vs the checkout; `npm run build` exit 0;
+  `verify:imports` still fails on node v24.20.0 tsx strip-only (pre-existing env issue).
+- Multi-user grep at the alpha.3 tag: still exactly **1 hit** —
+  `packages/api/remote-access/README.md`. `__DSH_BOOT__` lever intact
+  (`packages/client/modules/src/index.ts:635`). No native accounts; dsh-login remains the
+  account layer; uiRoleGate unaffected. Release: commit + tag `v0.3.10` + push + npm
+  publish + gh release (see git/npm for the record).
+
+## 2026-11-03 (scheduled watch) — no new DSH release; 0.3.9 stays current, no adaptation, no publish
+- Scheduled watch (cron `0 12 * * *` Asia/Shanghai; trigger 2026-11-03T04:00:00Z / 12:00 +0800).
+  Detection (all three channels):
+  - `git fetch --tags` in `E:\code\deepseek-harness`: no new objects. Newest tags remain
+    `dsh-v0.2.1-rc.5` (2026-10-29 21:01 +0800, `b830ec950f`/`31cfe2aafe`) > `dsh-v0.2.2-alpha.2`
+    (2026-10-28, `f3803c9697`). Local `master` == `origin/master` == `ce7073d512` — unchanged
+    since the 10-30 watch; nothing new landed upstream, so the 11-02 dev-tree observations
+    (wire surface drift 199 → 204; remote-access `whenAccess`/`whenAllowed`/per-Peer
+    `snapshotFor`) remain the latest and still carry no action.
+  - npm dist-tags unchanged: `@deepseek-ai/dsh` `latest`/`next` = 0.2.1-rc.5, `alpha` =
+    0.2.2-alpha.2 (`time.modified` 2026-10-29T16:01:42Z); `dsh-web-frontend` (`next` rc.5 /
+    `alpha` alpha.2, `time.modified` 2026-10-29T14:13:50Z) and `dsh-host-webserver` (same
+    dist-tags, `time.modified` 2026-10-29T13:50:52Z) — no registry activity since the 10-29
+    rc.5 publish window.
+  - Multi-user grep at the rc.5 tag (`multi.?user|multiuser|role.?based|\brbac\b` over
+    `packages/ apps/`): still exactly **1 hit** — `packages/api/remote-access/README.md`.
+    No native accounts upstream; dsh-login remains the account/authn layer. Role-based
+    whole-UI control remains delivered in-plugin (0.3.0 `uiRoleGate` + 0.3.1 bridge wall);
+    evaluation stays closed.
+- Verification: clean tree `npm test` = 21 files / 269 tests green (2026-11-03 12:01 +0800).
+  Docs updated (README.md / README.zh.md new watch paragraph + multi-user/RBAC and
+  per-identity-UI-gate re-verification dates). **No npm publish** — no new DSH release, no
+  adaptation; 0.3.9 stays current.
+
+## 2026-11-02 (scheduled watch) — no new DSH release; 0.3.9 stays current, no adaptation, no publish
+- Scheduled watch (cron `0 12 * * *` Asia/Shanghai family; run 2026-11-02 ~16:35 +0800).
+  Detection (all three channels):
+  - `git fetch --tags` in `E:\code\deepseek-harness`: no new objects. Newest
+    tags remain `dsh-v0.2.1-rc.5` (2026-10-29 21:01 +0800, `b830ec950f` /
+    `31cfe2aafe`) > `dsh-v0.2.2-alpha.2` (2026-10-28, `f3803c9697`). Local
+    `master` == `origin/master` == `ce7073d512` (2026-10-30 00:13, PR #7552)
+    — unchanged since the 10-30 watch.
+  - npm dist-tags unchanged: `@deepseek-ai/dsh-host-webserver` and
+    `dsh-web-frontend` both `next`=0.2.1-rc.5 / `alpha`=0.2.2-alpha.2;
+    `time.modified` = 2026-10-29T13:50:52Z (the rc.5 publish window) — no
+    registry activity since.
+  - Multi-user grep at the rc.5 tag (`multi.?user|multiuser|role.?based|\brbac\b`
+    over `packages/ apps/`): still exactly **1 hit** —
+    `packages/api/remote-access/README.md`. No native accounts upstream;
+    dsh-login remains the account/authn layer. Role-based whole-UI control
+    remains delivered in-plugin (0.3.0 `uiRoleGate` + 0.3.1 bridge wall);
+    evaluation stays closed.
+- Dev-tree observations recorded for the NEXT re-pin (unreleased; NO action
+  taken — the vendored fixture keeps tracking the newest RELEASE line):
+  - Wire surface drift: `node scripts/dump-wire-surface.mjs --checkout` on the
+    dev tree (HEAD `ce7073d512`) dumps **204 methods** vs the vendored 199
+    (0.2.2-alpha.2). Added: `forgePanel.changeRequestChecks`,
+    `forgePanel.submitReview`, `schedule.create`, `schedule.deliveryLimits`,
+    `schedule.edit`, `schedule.run`, `schedule.view`. Removed:
+    `schedule.update`, `schedule.delete` (dev-tree `ScheduleService` @Remote
+    methods are now deliveryLimits/create/list/catalog/view/history/run/
+    deleteInactive/edit; "Host-wide durable reminders"; no resource
+    declarations → global resource). Decision: **reverted
+    `tests/fixtures/wire-surface.json` to the vendored 199** — the fixture
+    pins a released wire generation, and `tests/wire-surface.spec.ts:79-100`
+    already no-ops its strict cross-check when the live checkout's length
+    differs from the snapshot's (vendored snapshot is authoritative; "next
+    watch re-pins" when a release lands). The 7 new methods are unclassified
+    in `src/api-filter.ts` → denied by default on dev trees (harmless; not a
+    released line).
+  - remote-access evolution (rc.5..HEAD diff, unreleased): new
+    `packages/api/remote-access/src/client/when-allowed.ts`
+    (`whenAllowed(ctx, answer, callback, label)` effect controller) and
+    `client/mount.ts` `ClientRemoteAccess.source(kind, id, action)` /
+    `whenAccess`; README adds session/attachment whole-library-read warnings;
+    the `__DSH_REMOTE_ACCESS__` snapshot became per-Peer
+    (`snapshotFor(peer.principal)`). Liveshare non-owner-Peer authorization —
+    a future native substrate if dsh-login ever mints non-owner principals;
+    no impact on the current owner-principal model.
+- Environment note: `npm run verify:imports` currently fails on node
+  v24.20.0 + tsx 4.23.15 — "TypeScript parameter property is not supported in
+  strip-only mode" for 9 src files using TS parameter properties
+  (admin-api/boolean-setting/hosts/index/ownership/provision/
+  remote-web-ui-compat/session/users/workspace-setting.ts). Reproduces on
+  unmodified HEAD → environment issue, not a code regression (the 10-29 run
+  was clean); `npm test` and the esbuild `build` are unaffected.
+- Verification: clean tree `npm test` = 21 files / 269 tests green
+  (2026-11-02 16:37 +0800). Docs updated (README.md / README.zh.md watch
+  paragraph + multi-user/RBAC and per-identity-UI-gate re-verification
+  dates). **No npm publish** — no new DSH release, no adaptation; 0.3.9
+  stays current.
+
+## 2026-10-30 (12:00 scheduled watch) — DSH 0.2.1-rc.5 released; verified compatible, NO adaptation, 0.3.9 stays current
+- Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-30T04:00:01Z).
+  Detection (all three channels):
+  - `git fetch --all --tags` in `E:\code\deepseek-harness` (retry with
+    `git -c http.version=HTTP/1.1 fetch --tags origin` on TLS eof): NEW tag
+    since the 10-29 noon watch — `dsh-v0.2.1-rc.5` → `b830ec950f` (merge PR
+    #7572 `worktree/release-dsh-0.2.1-rc.5`; release commit `31cfe2aafe`),
+    tagged 2026-10-29 21:01:28 +0800, npm published 2026-10-29T14:15:23Z
+    (22:15 +0800 — after the 10-29 watch). rc.4 IS an ancestor of rc.5;
+    alpha.2 is NOT (separate 0.2.2 line). rc.4..rc.5 = **4 commits**, the
+    only functional one PR #7484 (customize thinking-block rendering, ui-chat
+    only). Local `dev` still parked at `22ddee3792` (rc.3+1533), HEAD does not
+    contain rc.5 — detection source only, never retargeted.
+  - npm dist-tags, all 11 plugin-graph packages re-published at 0.2.1-rc.5
+    (`next`=rc.5 on every row; `@deepseek-ai/dsh` `latest` **promoted from
+    rc.2 to rc.5** — first stable-channel move since 10-17; the other rows'
+    `latest` dist-tags are stale 0.0.1-rc.*, use `next`); `alpha` stays
+    0.2.2-alpha.2 everywhere.
+  - Multi-user grep at the rc.5 tag (`multi.?user|multiuser|role.?based|\brbac\b`
+    over `packages/`): still exactly **1 hit** —
+    `packages/api/remote-access/README.md`. No native accounts upstream;
+    dsh-login remains the account/authn layer.
+- Adapter-surface verification (all against the rc.5 TAG, never the stale
+  tree): `git diff dsh-v0.2.1-rc.4..dsh-v0.2.1-rc.5 -- packages/host/webserver
+  packages/client/connection packages/host-frontend-static
+  packages/client/modules packages/api packages/boot apps/web apps/web-app
+  ui-slots ...` = 24 files, +41/−29, ALL package.json — zero source change on
+  the rc line (wire registry stays at the 146 rc-line methods). Direct tag
+  greps: `authorizeIndex(req, res, secure = false)` present at
+  `packages/client/connection/src/browser-auth.ts:263` and the core's
+  rpc-host already passes `webServer.protocol === 'https:'` (rpc-host.ts:194);
+  `get protocol(): 'http:' | 'https:'` at
+  `packages/host/webserver/src/index.ts:341` (src/, NOT src/lib/ — the 0.3.9
+  HTTPS-probe surface exists at rc.5); `__DSH_BOOT__` boot-graph lever intact
+  (`packages/client/modules/src/index.ts:592`,
+  `rows.push({kind:'global', name:'__DSH_BOOT__', value: graph})`).
+- Method-wall subset proof: all 146 rc-line methods as classified by v0.3.7
+  (`git show v0.3.7:src/api-filter.ts`) keep their EXACT bucket in HEAD's
+  199-method classification (92/53/1 ⊂ 119/79/1, checked per method via the
+  `new Set([...])` extraction). Combined with the zero-diff integration
+  layer, rc.5 needs no re-classification.
+- Decision: peers already admit rc.5 (`>=0.2.1-alpha.1 <0.3.0-0` branch,
+  semver prerelease tuple rule) and devDeps stay pinned to `^0.2.2-alpha.2`
+  (newer-generation line; same treatment rc.4 received on 10-28). **No
+  adapter release — 0.3.9 stays current.**
+- Verification: `npm test` = **21 files / 269 tests green** (12:12 +0800).
+- Repo-hygiene fix in the same pass: HEAD's `dist/index.js` was missing the
+  0.3.9 mintCoreCookie rebuild (the published v0.3.9 tarball DOES contain it
+  — verified by `npm pack @islibaodong/dsh-login@0.3.9` extraction) — the
+  working-tree dist (identical to the published tarball) is now committed so
+  HEAD == published state.
+- README.md + README.zh.md: banner/status updated 0.3.8 → 0.3.9 (they were
+  never updated at the 0.3.9 release and still claimed `latest` = 0.3.8);
+  0.3.9 added to both adaptation-history lines; 2026-10-30 rc.5 watch
+  paragraph added to both banners; multi-user/RBAC evaluation headers and
+  no-native-accounts rows extended with the rc.5 re-check (2026-10-30).
+- Changelog entry committed + pushed per the release-watch convention.
+
+## 2026-10-29 — 0.3.9: issue #10 fixed (launch-token exposure via fresh-device bounce)
+- Issue #10 (hatsuyuki280/初雪, opened 2026-10-25, framed as spec-deviation
+  not a vuln report): `createAuthorizeIndex` (src/gateway.ts) bounced any
+  logged-in fresh device to `/?token=<launchToken>` — the process launch
+  token reached the remote client (Location header → history, proxy logs),
+  and the SAME token is accepted by the core's `GET /connect` for an
+  owner-principal API credential (`authorizeConnect` validates the same
+  `this.launchToken`; apiBridgeAuth never gates /connect). Multi-user
+  deployments only; also a revocation-boundary violation (token outlives
+  disable/logout until process restart). All claims verified against
+  @deepseek-ai/dsh-client-connection 0.2.2-alpha.2.
+- Fix (server-side virtual exchange, no cookie-format replication): when the
+  probe says the core cookie is missing and the request carries no token,
+  dsh-login synthesizes `GET /?token=<launchToken>` (real request headers)
+  and feeds it through `connection.authorizeIndex` with a capture response;
+  the minted `set-cookie` is replayed onto the real response and the index
+  is served inline (no redirect). Mint failure (e.g. no Host authority)
+  falls through to the core's plain-text 401 — never back to the token URL.
+  The core owns cookie format/authority/Secure via its own service wrapper
+  (`authorizeIndex` derives `secure` from `webServer.protocol === 'https:'`).
+- Drive-by fix (same code path): the `isAuthenticated` probe now receives
+  the listener's `secure` decision. 0.3.8 probed with secure=false, but
+  native-TLS listeners mint cookies bound to the https-origin audience →
+  probe never matched → infinite bounce loop on native-TLS deployments
+  (and a stale http-audience cookie would 401-lock the index after an
+  HTTP→TLS switch). `webServer.protocol` is a getter ("'https:' when tls
+  is configured", dsh-host-webserver lib index.js:350-354).
+- isAdmin gating was considered and rejected: it would break non-admin
+  fresh-device bootstrap (the issue #3 scenario). The virtual exchange
+  preserves bootstrap for everyone while never exposing the token.
+- Long-term upstream suggestion (issue #10): split launch-token scopes —
+  belongs in deepseek-ai/deepseek-harness Discussions, out of dsh-login's
+  control; with this fix the plugin path no longer needs it.
+- Tests: bounce test rewritten as server-side-exchange test (200 + minted
+  cookie + NO location + no token on the wire); added mint-failure → core
+  401 test and HTTPS probe (`secure === true` recorded) test. `npm test` =
+  **21 files / 269 tests green**; `verify:imports` ok.
+- README.md + README.zh.md Security notes: launch-token paragraph added
+  under "Protected by the gateway / 网关保护范围"; test counts 247→269.
+- Version 0.3.8 → 0.3.9; published per the .npmrc.publish procedure.
+
+## 2026-10-29 (12:00 scheduled watch) — no new DSH release; 0.3.8 stays current
+- Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-29T04:00Z).
+  Detection (fresh evidence, all three channels):
+  - `git fetch --all --tags` in `E:\code\deepseek-harness`: clean, no output —
+    origin unchanged since the 10-28 watch. Newest tag still
+    `dsh-v0.2.2-alpha.2` (→ `f3803c9697`, the release merge PR #7437);
+    `origin/master` tip = `f3803c9697`; `git rev-list
+    dsh-v0.2.2-alpha.2..origin/master --count` = **0** — no commits past the
+    release merge. (Local `dev` branch still parked at `22ddee3792` on the
+    pre-alpha.2 backlog — same as every watch since 10-23; the local checkout
+    is only ever a detection source, never retargeted.)
+  - npm official registry, all 11 `@deepseek-ai/dsh-*` plugin-graph packages
+    (dsh, host-webserver, host-frontend-static, client-connection, settings,
+    web-frontend, client-modules, scope, session, brand, credentials):
+    `alpha=0.2.2-alpha.2` / `next=0.2.1-rc.4` on every row; `time.modified`
+    all within the alpha.2 publish window (2026-10-27T18:46–19:10Z) —
+    **nothing published since**. `@deepseek-ai/dsh` `latest` stays
+    `0.2.1-rc.2`.
+  - Multi-user re-check at `origin/master` (= the tag commit): grep
+    `multi.?user|multiuser|role.?based|\brbac\b` over `packages/ apps/` =
+    **1 hit** — `packages/api/remote-access/README.md` (identical to every
+    watch since alpha.3). No native accounts upstream; dsh-login remains the
+    multi-user layer. `__DSH_BOOT__` lever intact
+    (`packages/client/modules/src/index.ts:633`) — uiRoleGate intact. Role-
+    based whole-UI gating stays SHIPPED (0.3.0 uiRoleGate + 0.3.1
+    bridge-wall enforcement) — evaluation closed.
+- **Conclusion: no new DSH version (0.2.2-alpha.2 remains the newest release,
+  already adapted + released as 0.3.8 yesterday) → no adaptation needed.**
+  dsh-login 0.3.8 stays current; peer ranges (`>=0.2.2-alpha.2 <0.3.0-0` on
+  the prerelease tuple + `>=0.2.1-alpha.1` branches, alpha-line vendor pins)
+  already cover the latest runtime. No code changes → no README fix, no
+  release (release only when a new DSH version requires adaptation).
+- Verification: `npm test` = **21 files / 267 tests green** (6.70 s) on the
+  current tree (commit `7544df9`, master == origin/master, clean).
+- Changelog entry committed + pushed per the release-watch convention.
+
+## 2026-10-28 (12:00 scheduled watch) — DSH 0.2.1-rc.4 + 0.2.2-alpha.2 released; adapted as 0.3.8
+- Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-28T04:00Z).
+  Detection (fresh evidence, all three channels):
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness`: **two new
+    tags** since the 10-26 watch — `dsh-v0.2.1-rc.4` (→ `504a01a957`, tagged
+    2026-10-26 16:15 +0800, npm published 2026-10-26T15:09Z; 9 commits over
+    rc.3: 4 package.json bumps + tooltip/acp-stdout/mcp-diagnostics fixes,
+    **zero adapter-surface impact**) and `dsh-v0.2.2-alpha.2` (→ `f3803c9697`,
+    release merge PR #7437, tagged 2026-10-28 02:17 +0800, npm published
+    2026-10-27T18:52Z; **2161 commits** over rc.4). No `0.2.2-alpha.1` exists
+    (git and npm). origin/master tip `22ddee3792` → `f3803c9697`. Analysis ran
+    in detached worktree `E:\code\deepseek-harness-wt-022a2` @ alpha.2 (the
+    running harness's own checkout at `E:\code\deepseek-harness` stayed on
+    `dev` @ `22ddee3792`, untouched).
+  - npm official registry: all 11 `@deepseek-ai/dsh-*` plugin-graph packages
+    re-published at both tags (`next=0.2.1-rc.4`, `alpha=0.2.2-alpha.2`);
+    `@deepseek-ai/dsh` `latest` stays `0.2.1-rc.2`. Vendor `next` dist-tags
+    re-issued on the 0.2.2 line: cordis `4.0.6-alpha.1`, schemastery
+    `3.18.6-alpha.1`, include `1.0.11-alpha.1`, loader `1.0.7-alpha.1`.
+    Published-tarball peer check @alpha.2: cross-package peers pin exact
+    `0.2.2-alpha.2`, cordis `~4.0.6-alpha.1`, schemastery `~3.18.6-alpha.1`.
+  - Adapter surface rc.4→alpha.2: 176 files / +6221/−521. Headliners: PR
+    #6901 (`73931626be`) rewrote `@deepseek-ai/dsh-host-frontend-static` into
+    a WebResource cordis plugin and **removed the `serveStatic` export**;
+    `/api` wire registry **146 → 199 methods (+53)**; webserver index-inject
+    now `(table, peer)` (listener-only consumption stays compatible);
+    settings 3-line internal projection fix (no surface); web-app patch
+    roster churn (not ours; the `web-runtime` row dsh-login's
+    `cordis.patch.yml` disables still exists); boot-graph lever intact
+    (`__DSH_BOOT__`, types re-homed to `client/modules/src/client/manifest.ts`)
+    → uiRoleGate unaffected.
+  - Note: a prior session (2026-10-27 evening, uncommitted WIP in the tree)
+    had pre-adapted against then-unreleased master (`src/serve-static.ts`,
+    gateway import swap, 16/53 methods classified, fixture stamped 162). This
+    watch verified the WIP against the real published alpha.2, corrected the
+    fixture to the true 199-method registry, and completed the remaining 37
+    classifications.
+  - Multi-user re-check at `dsh-v0.2.2-alpha.2`: grep
+    `multi.?user|multiuser|role.?based|\brbac\b` over `packages/ apps/` =
+    **1 hit** — `packages/api/remote-access/README.md` (identical to every
+    watch since alpha.3; 2161 commits of backlog, still no account store).
+    remote-access grew role bindings over the new `forgePanel`/
+    `liveshareShares`/`session` resource kinds + per-Peer access snapshots,
+    but still only gates **non-owner** peers; dsh-login users are owner
+    principals. dsh-login remains the multi-user layer; evaluation unchanged.
+- **Adaptation shipped as 0.3.8** (devDep retarget + real code changes; full
+  analysis in `docs/adapt-dsh-0.2.2-alpha.2.md`):
+  - `src/serve-static.ts` (new): self-hosted node:http static fallback for
+    the `serveStatic` export upstream deleted — dist-root confinement (403 on
+    traversal), `ENOENT/EISDIR/ENOTDIR` → 404, index via `authorizeIndex()` +
+    `renderIndex()` (login wall still gates the SPA); trust shape unchanged.
+    Compatible with rc.3/rc.4 (which still export it) — fallback is
+    version-agnostic. `src/gateway.ts` imports it locally.
+  - `src/api-filter.ts`: `WIRE_SURFACE_DSH_VERSION = '0.2.2-alpha.2'`; +53
+    methods classified — **user** (+27 total since rc.3): `forgePanel.*` 18
+    (session-scoped worktree/PR panel, first param `sessionId`, ownership
+    checked, same trust shape as `terminal.*`), `session.{events,observeEvent,
+    observeProjections,observeState,state,wait}` 6, `toolResults.watch`,
+    `actionCards.act`, `pluginRecommendations.describe`; **admin** (+26):
+    `cuaAccess.*` 9 (CUA consent + host app inventory), `pluginManager.
+    listVersions/readBundleDetail/updateBundle` + `pluginMarket.
+    readEntryDetail` 4, `schedule.deleteInactive`, whole `liveshareShares`
+    namespace 12 (upstream header: "Owner-only Remote surface" — external
+    publishing/relay/identity/audit = operator territory; a user-scoped
+    subset would need per-share ownership checks dsh-login doesn't model).
+    Buckets **119 user / 79 admin / 1 host-internal = 199**, exhaustive and
+    test-enforced.
+  - `tests/fixtures/wire-surface.json`: re-dumped from a *built* alpha.2
+    worktree (typert files are generated by `pnpm run typecheck`; npm
+    tarballs don't ship them — dumping from an unpacked tarball yields 0
+    methods). `tests/wire-surface.spec.ts`: buckets 119/79/1, no-checkout
+    expects 199, live cross-check now generation-guarded (strict
+    unclassified/vanished only when live registry size == fixture size, so
+    the older-generation default checkout can't false-positive).
+  - `package.json`: version 0.3.8; 11 dsh devDeps → `^0.2.2-alpha.2`; vendor
+    devDeps → alpha vintage (cordis `~4.0.6-alpha.1`, schemastery
+    `~3.18.6-alpha.1`, include `~1.0.11-alpha.1`, loader `~1.0.7-alpha.1`);
+    peers extended with `|| >=0.2.2-alpha.2 <0.3.0-0` (prerelease tuple rule:
+    `>=0.2.1-alpha.1 <0.3.0-0` doesn't match the `[0,2,2]` tuple) and vendor
+    alpha branches.
+- Verification: `npm install` clean after node_modules+lockfile reset (old
+  lockfile wedged ERESOLVE against the alpha line); `npm test` = **21 files
+  / 267 tests green** against the published alpha.2 builds; `npm run build`
+  exit 0; `npm run verify:imports` all ok. README + README.zh banner/history/
+  headline/tracking/evaluation updated; `docs/adapt-dsh-0.2.2-alpha.2.md`
+  added (§5 classification table, §6 RBAC verdict); gotchas devDep pin
+  updated. Committed, tagged `v0.3.8`, pushed, npm published (`latest`),
+  GitHub release `v0.3.8` created.
+- 15:40 manual re-verification (user-prompted, same day): fresh `git fetch`
+  confirms no DSH release after alpha.2 (`origin/master` == `f3803c9697`, 0
+  commits ahead; npm dist-tags unchanged `alpha=0.2.2-alpha.2`,
+  `next=0.2.1-rc.4`); `npm test` re-run **21 files / 267 tests green** against
+  the published alpha.2 builds; multi-user grep re-checked at the alpha.2 tag
+  = still the single `packages/api/remote-access/README.md` hit (no native
+  accounts). v0.3.8 tag confirmed on origin; nothing left to adapt.
+
+## 2026-10-26 (12:00 scheduled watch) — no new DSH release; 0.3.7 stays current
+- Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-26T04:00Z).
+  Detection (fresh evidence, all three channels):
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness`: newest tag
+    still `dsh-v0.2.1-rc.3` (→ `1f81c047fc`, PR #6999 merge) — **no new tag**.
+    origin/master tip = `22ddee3792` (PR #7075 chatgap merge) — **byte-identical
+    to the 10-25 watch tip: 0 new commits since yesterday's watch**, still 1533
+    commits beyond the rc.3 tag (unreleased backlog: liveshare-protocol #6748,
+    desktop-packaging-cache #6675, session-baseline-split #7003,
+    tab-scroll-animation #7054, windows-runner-network-recovery #7057). The
+    10-25 post-rc.3 backlog heads-up (webserver resource routes #6901,
+    liveshare-protocol package, typert resolvers) therefore still stands
+    unchanged for the NEXT release watch. Local `dev` branch still at
+    `687f282e86` (rc.2), dirty only CLAUDE.md + untracked agent dirs.
+  - npm official registry: all 11 `@deepseek-ai/dsh-*` packages in the plugin
+    graph (dsh, host-webserver, host-frontend-static, client-connection,
+    credentials, settings, web-frontend, client-modules, scope, session,
+    brand) still `next=0.2.1-rc.3` with `time.modified` 2026-10-23T07:34–
+    07:56Z — the rc.3 publish window itself; **nothing published since**.
+    `@deepseek-ai/dsh` `latest` stays `0.2.1-rc.2` / `next=0.2.1-rc.3`.
+    `@deepseek-ai/dsh-liveshare-protocol` still NOT on npm (registry 404) —
+    no npm-only release either.
+  - Multi-user re-check at `origin/master` (= `22ddee3792`): grep
+    `multi.?user|multiuser|role.?based|\brbac\b` over `packages/ apps/` =
+    **1 hit** — `packages/api/remote-access/README.md` (the authorize-only
+    non-owner-Peer substrate; identical to every watch since alpha.3). No
+    native accounts upstream; dsh-login remains the multi-user layer.
+    `__DSH_BOOT__` boot-graph lever intact
+    (`packages/client/modules/src/index.ts:633`,
+    `rows.push({ kind: 'global', name: '__DSH_BOOT__', value: graph })`) —
+    uiRoleGate intact. Role-based whole-UI gating stays SHIPPED (0.3.0
+    uiRoleGate + 0.3.1 bridge-wall enforcement) — evaluation closed.
+- **Conclusion: no new DSH version (rc.3 remains the newest release, already
+  adapted + released as 0.3.7 on 10-24) → no adaptation needed.** dsh-login
+  0.3.7 stays current; peer ranges (`>=0.2.1-alpha.1 <0.3.0-0`) + rc.3
+  devDeps already cover the latest runtime. No code changes → no README fix,
+  no release (release only when a new DSH version requires adaptation).
+- Verification: `npm test` = **21 files / 267 tests green** (5.94 s) on the
+  current tree (commit `fb302b4`, master == origin/master, clean); the
+  wire-surface live cross-check against the `E:\code\deepseek-harness`
+  checkout passed inside the suite (146-method registry unchanged).
+- Changelog entry committed + pushed per the release-watch convention.
+
+## 2026-10-25 (12:00 scheduled watch) — no new DSH release; 0.3.7 stays current
+- Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-25T04:00Z).
+  Detection (fresh evidence, all three channels):
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness`: newest tag
+    still `dsh-v0.2.1-rc.3` (→ `1f81c047fc`, 2026-10-23 11:29:36 +0800, PR
+    #6999 merge) — **no new tag** since the 10-24 watch. origin/master tip =
+    `22ddee3792` (2026-10-23 19:48:59 +0800, PR #7075 chatgap merge):
+    **1533 commits beyond the rc.3 tag** — long-running branches merged after
+    the release (liveshare-protocol #6748, desktop-packaging-cache #6675,
+    session-baseline-split #7003, tab-scroll-animation #7054,
+    windows-runner-network-recovery #7057) = unreleased backlog, no release
+    cut. Local `dev` branch still at `687f282e86` (rc.2), dirty only CLAUDE.md
+    + untracked agent dirs.
+  - npm official registry: all 11 `@deepseek-ai/dsh-*` packages in the plugin
+    graph (dsh, host-webserver, host-frontend-static, client-connection,
+    credentials, settings, web-frontend, client-modules, scope, session,
+    brand) still `next=0.2.1-rc.3` with `time.modified` 2026-10-23T07:34–
+    07:55Z — the rc.3 publish window itself; **nothing published since**.
+    `@deepseek-ai/dsh` `latest` stays `0.2.1-rc.2` / `next=0.2.1-rc.3`
+    (`web-frontend`'s `latest` dist-tag still stale at `0.0.1-rc.5` — use
+    `next`). New package `@deepseek-ai/dsh-liveshare-protocol` NOT on npm
+    (registry 404) — no npm-only release either.
+  - Post-rc.3 backlog heads-up for the NEXT release watch (all unreleased at
+    tip): `feat(webserver): add resource routes and in-process readResource`
+    (#6901 — `WebResourceRoute`/`WebResource` types; `renderIndex`/
+    `collectIndexInjections` take a `peer`, `webserver/index-inject` fires
+    `(table, peer)` per `docs/upgrade-guide/v0.2.1-rc.2/webserver-index-peer/`;
+    dsh-login's `index.ts:235` listener consumes only `table` → compatible as
+    a listener; dsh-login does not call `renderIndex`); new
+    `@deepseek-ai/dsh-liveshare-protocol` package; typert default resource
+    resolvers. Verified at the tip: rc.3 itself still emits the one-arg
+    `webserver/index-inject(table)`, so the published runtime is unaffected.
+- Multi-user re-check at `origin/master` (= `22ddee3792`): grep
+  `multi.?user|multiuser|role.?based|\brbac\b` over `packages/ apps/` =
+  **1 hit** — `packages/api/remote-access/README.md` (the authorize-only
+  non-owner-Peer substrate; identical to every watch since alpha.3). No
+  native accounts upstream; dsh-login remains the multi-user layer.
+  `__DSH_BOOT__` boot-graph lever intact
+  (`packages/client/modules/src/index.ts:633`,
+  `rows.push({ kind: 'global', name: '__DSH_BOOT__', value: graph })`) —
+  uiRoleGate intact. Role-based whole-UI gating stays SHIPPED (0.3.0
+  uiRoleGate + 0.3.1 bridge-wall enforcement) — evaluation closed.
+- **Conclusion: no new DSH version (rc.3 remains the newest release, already
+  adapted + released as 0.3.7 yesterday) → no adaptation needed.** dsh-login
+  0.3.7 stays current; peer ranges (`>=0.2.1-alpha.1 <0.3.0-0`) + rc.3
+  devDeps already cover the latest runtime. No code changes → no README fix,
+  no release (release only when a new DSH version requires adaptation).
+- Verification: `npm test` = **21 files / 267 tests green** (5.79 s) on the
+  current tree (commit `15db686`, master == origin/master, clean).
+- Changelog entry committed + pushed per the release-watch convention.
+
+## 2026-10-24 (12:00 scheduled watch) — NEW DSH 0.2.1-rc.3 → adapted + RELEASED 0.3.7
+- Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-24T04:00Z).
+  Detection (fresh evidence, all three channels):
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness`: new tag
+    `dsh-v0.2.1-rc.3` → `1f81c047fc` (2026-10-23 11:29:36 +0800, PR #6999
+    merge); previous tag `dsh-v0.2.1-rc.2` → `687f282e86`. **6 commits**
+    rc.2..rc.3 (release bump `d02ea370ee`; #6944 llm `/models` listing re-home
+    `c48f8523f2`; #6883 nav pins/menu icons `39d2903841`; #6600 analytics
+    tracking `675164957a`; #6247 navigation entry customization
+    `5ff29190ed`). Local `dev` branch still at 687f282e86 (rc.2), dirty only
+    CLAUDE.md + untracked agent dirs.
+  - npm official registry: `@deepseek-ai/dsh` dist-tags
+    `{latest: 0.2.1-rc.2, next: 0.2.1-rc.3, alpha: 0.2.1-alpha.5}`,
+    time.modified 2026-10-23T07:54Z. All ten `@deepseek-ai/dsh-*` devDep
+    peers published at `0.2.1-rc.3` (each verified via `npm view`;
+    `dsh-web-frontend`'s `latest` dist-tag still points at stale
+    `0.0.1-rc.5` — use `next`). Vendored pins unchanged (cordis 4.0.5,
+    schemastery 3.18.5, include 1.0.10, loader 1.0.6); one transitive tool
+    3.1.8 → 3.1.9.
+  - Multi-user re-check: rc.2..rc.3 diff analysis + boot-graph lever intact
+    (`packages/client/modules/src/index.ts` zero diff). No native accounts,
+    no per-identity UI gate; `uiRoleGate` intact; role-based whole-UI gating
+    stays SHIPPED (0.3.0 + 0.3.1) — evaluation closed, unchanged.
+- **Upstream surface (full analysis in `docs/adapt-dsh-0.2.1-rc.3.md`): the
+  whole adapter surface is SOURCE-UNCHANGED.** rc.3 is a client-UI-only
+  release (640 files, mostly tests/snapshots/bumps): NEW `ui-entry-customization`
+  package, ui-sidebar `panel-pins.ts`, ui-sidebar-right `guide-pins.ts`,
+  ui-conversation `view-pins.ts` (+2-line slots.ts), ui-primitives Menu/
+  Tooltip, ui-workspace `navigation.ts`, llm catalog re-home
+  (`llm-deepseek-account` → `llm-deepseek`), product-analytics events. No new
+  wire method or namespace — the api-catalog change is doc strings + a client
+  type `AnalyticsPreset = 'creator'|'ptc'|'minimal'|'standard'`.
+  Mechanically verified: `node scripts/dump-wire-surface.mjs --checkout
+  E:\code\deepseek-harness --version 0.2.1-rc.3` → 146 methods, the ordered
+  method list byte-identical to the committed rc.2 snapshot (Compare-Object
+  diff count 0). No new admin-only community client bundle →
+  `ADMIN_ONLY_UI_PLUGINS` unchanged.
+- **Changes shipped (0.3.7):** `version` 0.3.6 → 0.3.7; 10 dsh-* devDeps
+  `^0.2.1-rc.2` → `^0.2.1-rc.3`. **Own peers unchanged** (the
+  `>=0.2.1-alpha.1 <0.3.0-0` branch already admits rc.3).
+  `src/api-filter.ts`: metadata only — `WIRE_SURFACE_DSH_VERSION = '0.2.1-rc.3'`
+  + header note (classification byte-identical to rc.2's registry; rc.3
+  touched only the client UI). `tests/fixtures/wire-surface.json` regenerated
+  at rc.3 (method list unchanged). **No other source changes** (the
+  `remote-guard.ts:81` "DSH 0.2.1-rc.2 (dsh-login 0.3.6, issue #4)" comment
+  stays — it documents when those namespaces were first listed). dist
+  rebuilt: `dist/client.js` byte-identical; `dist/index.js`/`.map` re-stamp
+  the version constant.
+- **Verification:** baseline `vitest run` **21 files / 267 tests green** on
+  the rc.2 tree BEFORE the retarget (proves rc.3 compatibility of the current
+  code), then again against the rc.3 builds after it — 267/267 both times;
+  `npm run build` exit 0 (`dist/client.js` 37134 chars); `npm run
+  verify:imports` ok.
+- Docs: README/README.zh banner + headline + adaptation history + tracking +
+  evaluation updated (0.3.7 / rc.3, re-verified 2026-10-24; L168/L164
+  "92 of the 146 methods DSH 0.2.1-rc.3 actually exposes"); new
+  `docs/adapt-dsh-0.2.1-rc.3.md`; gotchas.md devDep-pin + dist-restamp notes
+  updated. `docs/PROJECT-INDEX.md` deliberately NOT touched — it is a
+  v0.1.0-era snapshot last updated in August; no release since 0.3.4 has
+  updated it (stale, flagged).
+- Release: commit `27eed37` + tag `v0.3.7` + push (master `e2f6053..27eed37`,
+  tag `* [new tag] v0.3.7`); npm publish exit 0 via the `.env`
+  `NPM_ACCESS_TOKENS` temp-npmrc flow (temp file deleted, token never
+  printed; unpacked 744.3 kB, shasum `e5c5fe32…`, 36 files); registry
+  verified `dist-tags.latest = 0.3.7` after the ~60s lag; gh release
+  https://github.com/islibaodong/dsh-login/releases/tag/v0.3.7.
+
+## 2026-10-23 (manual watch) — no new DSH release; 0.3.6 stays current
+- Manual release watch (user-requested, session 2026-10-23T14:48+08:00).
+  Detection (fresh evidence, all channels):
+  - `git fetch origin --tags --prune` in `E:\code\deepseek-harness` (clean):
+    newest tag still `dsh-v0.2.1-rc.2` (→ `687f282e86`, the release merge
+    PR #6408); `git rev-list dsh-v0.2.1-rc.2..origin/master --count` = **0**
+    — no commits past the release merge; local `dev` == `origin/master` ==
+    the tag commit (checkout CLAUDE.md dirty + untracked agent dirs only,
+    no source drift).
+  - npm official registry: `@deepseek-ai/dsh` dist-tags
+    `{latest: 0.2.1-rc.2, next: 0.2.1-rc.2, alpha: 0.2.1-alpha.5}` — the
+    `latest` tag now ALSO sits on rc.2 (published 2026-10-17T08:24Z); all
+    six `@deepseek-ai/dsh-*` peers (web-frontend, host-webserver,
+    host-frontend-static, settings, client-connection, credentials) still
+    `alpha=0.2.1-alpha.5` / `next=0.2.1-rc.2`, `time.modified` 2026-10-17 —
+    no publish since rc.2. Vendored pins stable: cordis `4.0.5`,
+    schemastery `3.18.5`, include `1.0.10`, loader `1.0.6`.
+    `@islibaodong/dsh-login` `latest=0.3.6` (published 2026-10-21, time.modified
+    2026-10-21T08:51Z — the current release; nothing newer).
+  - Multi-user re-check at `origin/master` (= the tag commit): grep
+    `multi.?user|multiuser|role.?based|\brbac\b` over `packages/` + `apps/`
+    (rg, tests excluded) = **1 hit** — `packages/api/remote-access/README.md`
+    (the authorize-only non-owner-Peer substrate; identical to the 10-18 and
+    10-19 verdicts). No native accounts upstream; dsh-login remains the
+    multi-user layer. `__DSH_BOOT__` boot-graph lever intact
+    (`packages/client/modules/src/index.ts:592`,
+    `rows.push({ kind: 'global', name: '__DSH_BOOT__', value: graph })`)
+    — uiRoleGate intact. Role-based whole-UI gating stays SHIPPED
+    (0.3.0 uiRoleGate + 0.3.1 bridge-wall enforcement) — evaluation closed.
+- **Conclusion: no new DSH version → no adaptation needed.** dsh-login
+  0.3.6 remains current (last-adapted runtime 0.2.1-rc.2 IS the current
+  npm `latest`); peer ranges (`>=0.2.1-alpha.1 <0.3.0-0` + the rc.2 devDeps)
+  already cover the latest runtime. No code changes → no README fix, no
+  release (release only when a new DSH version requires adaptation).
+- Verification: `npm test` = **21 files / 267 tests green** (5.92 s) on the
+  current tree (commit `c39eab2`); node_modules verified in place at
+  `0.2.1-rc.2` × 10 + cordis 4.0.5 / schemastery 3.18.5 / include 1.0.10 /
+  loader 1.0.6 — the wire-surface live cross-check against the checkout
+  passed inside the suite.
+- Changelog entry committed + pushed per the release-watch convention.
+- **Follow-up same day (user request): README restructure.** In both
+  `README.md` and `README.zh.md` the problem-statement section
+  (`## The problem it solves` / `## 这个插件解决什么问题`) moved to the very
+  top (right after the intro + screenshots, L11-23), and the huge
+  `> **Released:**` / `> **已发布：**` + adaptation-history blockquotes moved
+  down inside `## Current status` / `## 当前状态` (now directly under that
+  heading). Pure line re-ordering, no content edits; line counts unchanged
+  (300 / 284), CRLF preserved. Motivation: the release-notes wall of text was
+  burying the repo introduction.
+
+## 2026-10-21 — 0.3.6: issue #4 fix (ordinary-user allow-list drifted off the 0.2.1-rc.2 wire surface)
+- **Report** (issue #4, author lingistic123, DSH 0.2.1-rc.2 + dsh-login 0.3.5):
+  ordinary users get `not permitted for this user` on (1) add-workspace,
+  (2) the composer model dialog, (3) settings → models ("加载提供商目录失败").
+  Admins unaffected. Root cause: `USER_ALLOWED` was written against the
+  **pre-0.2 spelling set** (`session.models`, `session.history`,
+  `llm.providers`/`llm.models`, `skill.list`, `goal.*`, `subagent.*`,
+  `host.describe`, `workspace.list`, `respond`, `workspaceFiles.readAll`/
+  `readRelated`) — every entry a dead name on rc.2 — while the real names
+  (`session.modelCatalog`, `llm.listProviders`, `directoryPicker.*`, …) were
+  absent, so `api-bridge-auth.ts` denied them at the method gate.
+- **Fix**: `src/api-filter.ts` rewritten as an **exhaustive** classification of
+  the 146-method registry: `USER_ALLOWED` (92), `ADMIN_ONLY_METHODS` (53),
+  `HOST_INTERNAL_METHODS` (1, `workspace.initializeDefault`), plus
+  `classifyWireMethod()`/`isKnownWireMethod()`; `WIRE_SURFACE_DSH_VERSION =
+  '0.2.1-rc.2'`. New `scripts/dump-wire-surface.mjs` (re-derives the list from
+  a DSH checkout) and `tests/fixtures/wire-surface.json` (vendored snapshot),
+  guarded by `tests/wire-surface.spec.ts` (9 cases: no unclassified method, no
+  dead entry, buckets disjoint + sizes 92/53/1, live cross-check against the
+  checkout, each issue-#4 method user-reachable, each retired spelling gone).
+- `src/capabilities.ts`: `USER_DOMAINS`/`adminOnlyMethods()`/`allDomains()` are
+  now derived from the buckets; `QUIET_DENY_METHODS` re-spelled to real names;
+  `isReadProbe()` matches read verbs as prefixes (`listProviders`,
+  `listIndexes`, `discoverModels`) instead of exact words.
+- `src/remote-guard.ts`: `ADMIN_ONLY_NAMESPACES` += `pluginInventory`,
+  `pluginRegistryProbe`, `dynamicCordisRunner`, `claudeCodeMods`.
+- `src/api-bridge-auth.ts` + `src/index.ts`: unknown-method denials (not on this
+  build's wire surface) are reported **once per method** through `ctx.logger`
+  (fallback `console.warn`) with the target DSH version — an upstream rename is
+  now a host-log diagnostic instead of a silent user lockout.
+- Policy call: `directoryPicker.pick`/`list`/`createDirectory` **admitted** to
+  ordinary users (issue #4's own recommendation). Rationale: the privilege
+  boundary is `workspace.create`, still confined to the caller's sandbox, and
+  `terminal.*` already lets users run shell as the same system user — no new
+  capability class. README troubleshooting section rewritten accordingly.
+- Docs: README/README.zh "two-layer model" re-spelled to real names (+ 0.3.6
+  headline, 21 files/267 tests), `docs/compose-guard.md`,
+  `docs/verify-option-A.md`, new `docs/adapt-dsh-0.2.1-rc.2-issue-4.md`.
+- Tests: 267/267 green (21 files). Bundle rebuilt (`dist/index.js` carries the
+  new surface). Published as 0.3.6.
+
+
 ## 2026-10-19 (12:00 scheduled watch) — no new DSH release; 0.3.5 stays current
 - Scheduled cron run (`0 12 * * *` Asia/Shanghai, trigger 2026-10-19T04:00Z).
   Fresh evidence, all three channels, all unchanged since the 10-18 watch:

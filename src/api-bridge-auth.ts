@@ -57,7 +57,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { extractSessionToken } from './auth.ts'
 import type { SessionStore } from './session.ts'
 import type { OwnershipIndex } from './ownership.ts'
-import { USER_ALLOWED } from './api-filter.ts'
+import { USER_ALLOWED, isKnownWireMethod } from './api-filter.ts'
 import { PATH_FENCED_METHODS, payloadWithinFolder } from './path-fence.ts'
 import {
   FILTER_METHODS,
@@ -102,6 +102,15 @@ export interface ApiBridgeAuthDeps {
    * outside it are denied. Admins are never fenced.
    */
   userFolder?: (username: string) => string
+  /**
+   * Fired (best-effort) when a denied endpoint is not part of the wire surface
+   * this build knows about (`isKnownWireMethod`). A denial of a *known* method
+   * is the ordinary admin/user boundary; a denial of an *unknown* one almost
+   * always means upstream renamed a method the allow-list still spells the old
+   * way — the exact silent failure mode of issue #4. Deployments wire this to a
+   * throttled logger so the next rename is visible instead of invisible.
+   */
+  onUnknownMethod?: (method: string, username: string) => void
 }
 
 /**
@@ -209,6 +218,13 @@ export function createApiBridgeAuth(deps: ApiBridgeAuthDeps): ApiBridgeAuthListe
     const endpoint = endpointFromUrl(request.url)
     if (endpoint === undefined) return next()
     if (!USER_ALLOWED.has(endpoint)) {
+      // Diagnose upstream renames: a known admin method denied here is the
+      // ordinary boundary, an unknown one means the allow-list is stale.
+      if (!isKnownWireMethod(endpoint)) {
+        try {
+          deps.onUnknownMethod?.(endpoint, user.username)
+        } catch { /* best-effort diagnostics only */ }
+      }
       if (deps.quietDenials) {
         await denyQuiet(request, response)
         return
